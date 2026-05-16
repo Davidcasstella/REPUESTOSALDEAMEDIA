@@ -1,0 +1,145 @@
+.top-header {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 200px;
+    height: 60px;
+    background: #101f33;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1a2a44;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 1.5rem;
+    z-index: 90;
+    transition: all 0.3s ease;
+    gap: 1rem;
+}
+
+.header-cyber-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    .header-cyber-badges {
+        display: none;
+    }
+}
+
+.header-nav {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.header-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #FFFFFF;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 0.825rem;
+    font-weight: 500;
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.header-nav-item:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.header-nav-item.active {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.2);
+    text-shadow: none;
+    font-weight: bold;
+}
+
+.header-nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: #FFFFFF;
+    box-shadow: none;
+}
+
+.header-nav-item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.logout-btn {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(209, 16, 16, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #FFFFFF;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+    box-shadow: 0 0 15px rgba(26, 26, 26, 0.3);
+}
+
+@media (max-width: 768px) {
+    .logout-btn {
+        position: absolute;
+        right: 1.25rem;
+        padding: 0.5rem;
+        background: transparent;
+        border: none;
+    }
+
+    .logout-text {
+        display: none;
+    }
+}
+
+.header-logo-mobile {
+    display: none;
+    align-items: center;
+}
+
+.header-logo-img {
+    height: 42px;
+    width: auto;
+    filter: drop-shadow(0 0 10px rgba(26, 26, 26, 0.6));
+    transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .top-header {
+        left: 0;
+        padding: 0 1rem;
+        justify-content: center;
+    }
+
+    .header-logo-mobile {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .header-nav {
+        display: none !important;
+    }
+}

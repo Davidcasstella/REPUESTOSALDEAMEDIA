@@ -1,0 +1,131 @@
+{
+  "573028599105@s.whatsapp.net": {
+    "lastMessageText": "la 1",
+    "lastMessageAt": "2026-04-22T07:26:26.024Z",
+    "aiEnabled": true,
+    "cooldownEnabled": true,
+    "lastWelcomeSentAt": "2026-04-22T07:16:08.174Z"
+  },
+  "151771427143897@lid": {
+    "lastMessageText": "Que es la vida ?",
+    "lastMessageAt": "2026-02-24T05:51:44.647Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true,
+    "lastWelcomeSentAt": "2026-02-24T05:51:38.174Z"
+  },
+  "573503267342@s.whatsapp.net": {
+    "lastMessageText": "[unrecognized message]",
+    "lastMessageAt": "2026-04-22T06:48:14.221Z",
+    "aiEnabled": true,
+    "cooldownEnabled": true,
+    "lastWelcomeSentAt": "2026-04-22T06:47:52.783Z"
+  },
+  "254468541157383@lid": {
+    "lastMessageText": "Chevere",
+    "lastMessageAt": "2026-03-29T06:10:24.196Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true,
+    "lastWelcomeSentAt": "2026-03-29T00:43:30.088Z"
+  },
+  "143825737629729@lid": {
+    "aiEnabled": true,
+    "lastMessageText": "¡Hola! Nuestro chat con agente finalizó 😃 *¡Fue un gusto ayudarte!*\r\nUna vez vuelvas a escribir, iniciaremos una nueva conversación, navega por las opciones de nuestro menú, y selecciona el paso con un asesor.  \r\n*¡Te espero de regreso!*",
+    "lastMessageAt": "2026-03-03T06:29:28.930Z",
+    "cooldownEnabled": true
+  },
+  "48039276351681@lid": {
+    "lastWelcomeSentAt": "2026-03-04T01:51:38.129Z",
+    "lastMessageText": "Contraseña de wifi",
+    "lastMessageAt": "2026-03-04T01:51:37.782Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "108564442001645@lid": {
+    "lastWelcomeSentAt": "2026-03-04T02:04:27.868Z",
+    "lastMessageText": "[unrecognized message]",
+    "lastMessageAt": "2026-03-04T02:04:28.746Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "139998770761765@lid": {
+    "aiEnabled": false
+  },
+  "39423521644585@lid": {
+    "aiEnabled": false,
+    "lastMessageText": "Si",
+    "lastMessageAt": "2026-03-04T02:54:56.889Z",
+    "cooldownEnabled": true
+  },
+  "31993832181966@lid": {
+    "aiEnabled": false
+  },
+  "146398825717861@lid": {
+    "aiEnabled": false
+  },
+  "16149697814603@lid": {
+    "lastMessageText": "Me interesa todo desde el teléfono",
+    "lastMessageAt": "2026-03-04T03:02:52.190Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "281084285702321@lid": {
+    "aiEnabled": false
+  },
+  "76695902150767@lid": {
+    "lastMessageText": "Y si transfiero q viene despues",
+    "lastMessageAt": "2026-03-04T04:01:25.345Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "63128201068585@lid": {
+    "lastMessageText": "?",
+    "lastMessageAt": "2026-03-04T04:11:13.761Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "10265424834629@lid": {
+    "aiEnabled": false
+  },
+  "238396605759638@lid": {
+    "aiEnabled": false,
+    "lastMessageText": "Dime",
+    "lastMessageAt": "2026-03-04T04:17:06.794Z",
+    "cooldownEnabled": true
+  },
+  "202172901908557@lid": {
+    "lastWelcomeSentAt": "2026-03-17T05:37:34.421Z"
+  },
+  "89391204716654@lid": {
+    "lastWelcomeSentAt": "2026-03-29T04:34:33.280Z",
+    "lastMessageText": "El audio no se escucha nada",
+    "lastMessageAt": "2026-03-29T04:35:47.733Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "91401299706110@lid": {
+    "lastWelcomeSentAt": "2026-03-29T04:45:28.551Z",
+    "aiEnabled": false,
+    "lastMessageText": "Listo ya entré",
+    "lastMessageAt": "2026-03-29T05:02:20.674Z",
+    "cooldownEnabled": true
+  },
+  "20723686989999@lid": {
+    "aiEnabled": false
+  },
+  "42018369703942@lid": {
+    "aiEnabled": false
+  },
+  "91366856089780@lid": {
+    "lastWelcomeSentAt": "2026-03-30T05:41:47.894Z"
+  },
+  "120363427320939405@g.us": {
+    "aiEnabled": false
+  },
+  "97186956234961@lid": {
+    "lastWelcomeSentAt": "2026-04-18T02:59:49.796Z",
+    "lastMessageText": "Esto",
+    "lastMessageAt": "2026-04-18T03:00:47.327Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  }
+}

@@ -1,0 +1,35 @@
+# Root .gitignore
+node_modules/
+.env
+backend/src/data/
+backend/session/
+dist/
+.DS_Store
+*.log
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Build and Temp
+build/
+temp/
+out/
+
+# AWS temporary files
+trust-policy.json
+chatwifi-policy.json
+block-device.json
+userdata.sh
+*.pem
+.env.production
