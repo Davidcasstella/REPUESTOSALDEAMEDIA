@@ -4,15 +4,15 @@ const jwtConfig = require('../config/jwt');
 
 // In-memory user database (temporary)
 const salt = bcrypt.genSaltSync(10);
-const hashedPassword = bcrypt.hashSync('password123', salt);
+const hashedPassword = bcrypt.hashSync('repuestos2026', salt);
 const users = [
     {
         id: 1,
-        email: 'admin@wifi.com',
+        email: 'admin@aldeamediarepuestos.com',
         password: hashedPassword
     }
 ];
-console.log('👤 Usuario de prueba listo: admin@wifi.com / password123');
+console.log('👤 Usuario listo: admin@aldeamediarepuestos.com');
 
 const register = async (req, res) => {
     try {
