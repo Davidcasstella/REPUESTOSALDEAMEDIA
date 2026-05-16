@@ -1,0 +1,1574 @@
+{
+  "573028599105@s.whatsapp.net": {
+    "pushName": "David Castella",
+    "messages": [
+      {
+        "id": "eb2c50a1cfb21ff6",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:07.186Z"
+      },
+      {
+        "id": "4c75a7fb65535479",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:07.427Z"
+      },
+      {
+        "id": "41f9739a8c097278",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:10.956Z"
+      },
+      {
+        "id": "1722493add76199a",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:13.841Z"
+      },
+      {
+        "id": "d5f3e887773eec02",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:14.218Z"
+      },
+      {
+        "id": "0317f37d519fad1c",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:17.368Z"
+      },
+      {
+        "id": "27741fc4c576ce71",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:17.981Z"
+      },
+      {
+        "id": "490fb25e007ed029",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:24.383Z"
+      },
+      {
+        "id": "ed1cec8e8cfbd38a",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:25.012Z"
+      },
+      {
+        "id": "19b6318987eea219",
+        "text": "dasdasd",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:50:31.375Z",
+        "read": true
+      },
+      {
+        "id": "2191e0d37d6c39cf",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:50:31.402Z"
+      },
+      {
+        "id": "3d23f3a616156bf2",
+        "text": "sumercé no entiendo lo que dice",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:50:37.225Z"
+      },
+      {
+        "id": "1f0ab44a0f68f1ef",
+        "text": "por favor repita la solicitud",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:50:44.243Z"
+      },
+      {
+        "id": "4c1b92eb42da2102",
+        "text": "con gusto le ayudare a encontrar el repuesto que necesita",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:50:51.267Z"
+      },
+      {
+        "id": "05a7f7125766d1de",
+        "text": "para regutar por esteBALANCIN MOTOR TOY. HILUX REVO 1GD /2GD 2016",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:53:23.730Z",
+        "read": true
+      },
+      {
+        "id": "865578f2f8ae9709",
+        "text": "tenemos balancin para toyota hilux revo \n referencia y precio a la orden",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:53:31.980Z"
+      },
+      {
+        "id": "3c9d98dfc4f7b224",
+        "text": "le puedo dar toda la informacion que necesite  \n precio y disponibilidad a la orden",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:53:39.011Z"
+      },
+      {
+        "id": "07b126a6c5f6f715",
+        "text": "me dice si necesita algo mas para el hilux revo. con gusto le ayudo a hacer su pedido",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:53:46.029Z"
+      },
+      {
+        "id": "07fe84ef947d94bf",
+        "text": "dame el precio",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:53:53.635Z",
+        "read": true
+      },
+      {
+        "id": "2e2df6a41584a925",
+        "text": "el precio del balancin es $580000 \ncon gusto se lo puedo reservar para su recogida",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:53:59.168Z"
+      },
+      {
+        "id": "7f4303e079b790d8",
+        "text": "TOI-01-712 pero ese es este el precio es correcto ?",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:54:29.305Z",
+        "read": true
+      },
+      {
+        "id": "a0414b624495fae2",
+        "text": "sumercé con gusto le doy la información de ese repuesto",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:54:34.260Z"
+      },
+      {
+        "id": "808bf174064f1402",
+        "text": "Referencia: 13801-0E012 - BALANCIN MOTOR TOY. HILUX REVO 1GD /2GD 2016/",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:54:41.278Z"
+      },
+      {
+        "id": "0884285910d24703",
+        "text": "Marca: TOYOTA-JP - Precio: $154.468. si le interesa con gusto le hacemos el pedido",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:54:48.302Z"
+      },
+      {
+        "id": "d35374ad29eb9392",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:57:54.634Z"
+      },
+      {
+        "id": "753410d343044451",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:57:58.154Z"
+      },
+      {
+        "id": "642cf5ae0c71abf7",
+        "text": "bien",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:58:00.166Z",
+        "read": true
+      },
+      {
+        "id": "57d2a8f15b73ca43",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:58:05.170Z"
+      },
+      {
+        "id": "a7634cbd863d6caf",
+        "text": "sumercé a la orden \n en que mas podemos ayudarlo hoy",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:58:05.719Z"
+      },
+      {
+        "id": "9356570fd0813eb8",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:58:12.197Z"
+      },
+      {
+        "id": "e48af18b0e2291a2",
+        "text": "para regutar por esteBALANCIN MOTOR TOY. HILUX REVO 1GD /2GD 2016",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:58:17.672Z",
+        "read": true
+      },
+      {
+        "id": "1b340479a2462537",
+        "text": "el precio es $154468 \n con gusto te podemos hacer el pedido de ese balancín",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:58:23.507Z"
+      },
+      {
+        "id": "488f9550b0dfff44",
+        "text": "tambien para preguntar por eso  BARRA TENSORA TOY",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:58:57.676Z",
+        "read": true
+      },
+      {
+        "id": "5b95f96bc627ab24",
+        "text": "sumercé tenemos disponible \n Barra tensora toyota hilux 1GD 2GD \n referencia 44310-0E012 precio $98000",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:59:03.872Z"
+      },
+      {
+        "id": "2bfb2d408e84e6a9",
+        "text": "me dice si necesita hacer el pedido de ambos repuestos",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:59:10.887Z"
+      },
+      {
+        "id": "eeef9077e839e413",
+        "text": "con gusto le podemos ayudar a hacer la compra de ambos repuestos",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:59:17.909Z"
+      },
+      {
+        "id": "28855c9b9a485350",
+        "text": "pero yo necesito es la 48740-60070",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:59:27.970Z",
+        "read": true
+      },
+      {
+        "id": "262ec91b1a0c20d0",
+        "text": "sumercé con gusto le doy la información de ese repuesto",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:59:32.916Z"
+      },
+      {
+        "id": "7bdcd81a6130b266",
+        "text": "Codigo: TOI-07-717 - BARRA TENSORA TOY. LAND CRUISER UZJ100/2UZFE 4.7 TRAS. DER. - Marca: TOYOTA-JP",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:59:39.938Z"
+      },
+      {
+        "id": "e25e8c5b29ec98e3",
+        "text": "le puedo dar el precio con gusto quiere que se lo diga?",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T06:59:46.956Z"
+      },
+      {
+        "id": "a3949b375b88413e",
+        "text": "si",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:59:55.213Z",
+        "read": true
+      },
+      {
+        "id": "1dd468bbf7467a51",
+        "text": "sumercé el precio es $250000 \n a la orden para hacer su pedido de barra tensora toyota código 48740-60070",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:00:00.713Z"
+      },
+      {
+        "id": "61349d9b39a876c0",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:06:39.683Z"
+      },
+      {
+        "id": "3bfec693d7f5b6a1",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:06:43.214Z"
+      },
+      {
+        "id": "3100a28418751b39",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:06:50.251Z"
+      },
+      {
+        "id": "9004e2811735014c",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:06:57.283Z"
+      },
+      {
+        "id": "74671344eb09e4fb",
+        "text": "muy bien para un repuesto",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:07:37.399Z"
+      },
+      {
+        "id": "2e664c563f937fbd",
+        "text": "sumercé con gusto le ayudo a encontrar ese repuesto",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:07:40.947Z"
+      },
+      {
+        "id": "46298e95c84ccdeb",
+        "text": "tenemos disponibles muchos repuestos para diferentes marcas y modelos",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:07:43.984Z"
+      },
+      {
+        "id": "c62c1feabf59fb9e",
+        "text": "¿podría decirme la referencia o el nombre del repuesto que necesita?",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:07:47.015Z"
+      },
+      {
+        "id": "08b08666db5d5288",
+        "text": "me dice el modelo del carro y le busco el repuesto adecuado para usted",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:07:50.045Z"
+      },
+      {
+        "id": "7e016cf728dba005",
+        "text": "necesito una  biela motor toy. HILUX 2.7 2TRFE que precio",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:08:29.193Z"
+      },
+      {
+        "id": "48c2aebb8e25e437",
+        "text": "sumercé tenemos 5 referencias para ese repuesto me dice cuál le interesa",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:08:31.352Z"
+      },
+      {
+        "id": "f697deabecae4a01",
+        "text": "1. TOI-20-114 - AMORT. TOY. FORTUNER 2TRFE 2.7 4X4 2019/HILUX REVO 2TRFE 2.7 4X4 2016/ TRAS. - TOYOTA-JP",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:08:34.387Z"
+      },
+      {
+        "id": "f932fc520b360a6a",
+        "text": "2. TOI-01-844 - JGO PISTON MOTOR TOY. HILUX REVO 1GD 92MM (2.0KX1.5X3.0) STD JGO PISTON MOTOR TOY. HILUX REVO 2GD 2.4 2016/ 92MM (2.0X1.5X3.0) STD JGO PISTON MOTOR TOY. HILUX REVO 2GD 2.4 2016/ 92MM (2.0X1.5X3.0) STD JGO PISTON MOTOR TOY. HILUX VIGO DIESEL 2.5 2KDFTV ALFIN 92MM (2.0X1.5X3.0) (RECAMARA 39.5) (ALFIN) STD JGO PISTON MOTOR TOY. HILUX VIGO DIESEL 2.5 2KDFTV ALFIN 92MM (2.0X1.5X3.0) (RECAMARA 39.5) STD JGO PISTON MOTOR TOY. HILUX VIGO DIESEL 2.5 2KDFTV ALFIN 92MM (2.0X1.5X3.0) (RECAMARA 39.5) STD (CON RECUBRIMIENTO) - TIK",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:08:37.422Z"
+      },
+      {
+        "id": "26c313bd25f7b542",
+        "text": "3. TOI-01-443 - BIELA MOTOR TOY. HILUX 2.7 2TRFE - TOMITA",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:08:40.455Z"
+      },
+      {
+        "id": "a860ea9edd6a3b62",
+        "text": "4. TOI-04-098 - TROMPO TEMPERATURA TOY. HILUX 2.7 2TR/FJ CRUISER/TERIOS 1.5 TROMPO TEMPERATURA TOY. HILUX VIGO/FORTUNER 2.7 2TRFE/FJCRUISER 1GR - TOYOTA-JP",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:08:43.488Z"
+      },
+      {
+        "id": "9b40198fa22ae36c",
+        "text": "5. TOI-01-464 - CIGUE�AL MOTOR TOY. HILUX 2.7 GAS. 2TRFE - TOMITA",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:08:46.528Z"
+      },
+      {
+        "id": "f65c0136aebaea01",
+        "text": "me indica el número o la referencia que le interesa y le doy el precio",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:08:49.570Z"
+      },
+      {
+        "id": "9dd5efaa792504f4",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:14:24.978Z"
+      },
+      {
+        "id": "fbea9e1f432ff3ff",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:14:28.508Z"
+      },
+      {
+        "id": "2d076c579342bc10",
+        "text": "bien",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:14:32.762Z"
+      },
+      {
+        "id": "384e42325d3a4fff",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:14:35.525Z"
+      },
+      {
+        "id": "943f30de262ac370",
+        "text": "sumercé con gusto le ayudo a encontrar ese repuesto a la orden",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:14:38.231Z"
+      },
+      {
+        "id": "4e6307939b2a0dc3",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:14:42.545Z"
+      },
+      {
+        "id": "3ae28542ec357ded",
+        "text": "Estoy buscando estoBOMBA AGUA TOY. LAND CRUISER 4.5/BURBUJA 4.5",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:15:06.096Z"
+      },
+      {
+        "id": "cec2e72bfde76bf2",
+        "text": "Ok, sumercé. En un momento le ayudamos.",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:15:06.124Z"
+      },
+      {
+        "id": "069554d0ba036067",
+        "text": "estoy buscando esto BOMBA AGUA TOY. LAND CRUISER 4.5/BURBUJA 4.5",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:15:20.054Z"
+      },
+      {
+        "id": "bdb64432bd75ecc3",
+        "text": "Ok, sumercé. En un momento le ayudamos.",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:15:20.086Z"
+      },
+      {
+        "id": "dbcbf7e9e9cfd1c3",
+        "text": "gracias",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:15:32.049Z"
+      },
+      {
+        "id": "8a798f97e6f546b8",
+        "text": "hola",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:15:40.458Z"
+      },
+      {
+        "id": "165979a255b9cb25",
+        "text": "hola sumercé como puedo ayudarte",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:15:45.985Z"
+      },
+      {
+        "id": "f48be3ef4e4307ea",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:15:50.599Z"
+      },
+      {
+        "id": "9168004b4dfa40a0",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:15:54.126Z"
+      },
+      {
+        "id": "b5fa8e5672a6329b",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:16:01.144Z"
+      },
+      {
+        "id": "a8412c3a22625bb6",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T07:16:08.169Z"
+      },
+      {
+        "id": "3e9a8bc767998d7c",
+        "text": "estoy buscando esta referencia TOI-03-077",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:16:14.796Z"
+      },
+      {
+        "id": "387e8e4f57cdf9f3",
+        "text": "sumercé con gusto le doy la información de ese repuesto",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:16:19.736Z"
+      },
+      {
+        "id": "15d7a5d170b60a91",
+        "text": "Codigo: TOI-03-077 - BOMBA AGUA TOY. LAND CRUISER 4.5/BURBUJA 4.5 - Marca: NPW",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:16:26.754Z"
+      },
+      {
+        "id": "c92bb140918cd94a",
+        "text": "le puedo dar el precio con gusto quiere que se lo diga?",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:16:33.777Z"
+      },
+      {
+        "id": "a9d116eff6b26b4b",
+        "text": "precio",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:16:34.957Z"
+      },
+      {
+        "id": "de80f558c5784b05",
+        "text": "Precio: $850.000 COP \n Stock: 8 unidades \n Envío: Disponible \n Garantía: 30 días sumercé quiere realizar el pedido?",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:16:40.689Z"
+      },
+      {
+        "id": "a11a7692fbddb776",
+        "text": "TOI-03-152",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:17:48.266Z"
+      },
+      {
+        "id": "30de432d14fec028",
+        "text": "sumercé con gusto le doy la información de ese repuesto",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:17:53.209Z"
+      },
+      {
+        "id": "a8c128d922f661ba",
+        "text": "Codigo: TOI-03-152 - BOMBA AGUA TOY. LAND CRUISER SAHARA UZJ100/2UZ 4.7 V8 GAS 1998/2008 - Marca: NPW",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:18:00.227Z"
+      },
+      {
+        "id": "3c1b07bdc8582780",
+        "text": "le puedo dar el precio con gusto quiere que se lo diga?",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:18:07.247Z"
+      },
+      {
+        "id": "79086748fd514ac0",
+        "text": "si",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:18:18.201Z"
+      },
+      {
+        "id": "856ee0467ccef128",
+        "text": "Precio: $1.200.000 COP \n Stock: 5 unidades \n Envío: Disponible \n Garantía: 60 días a la orden ¿desea realizar el pedido?",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:18:23.628Z"
+      },
+      {
+        "id": "1ff7a2ad49074086",
+        "text": "hola",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:25:54.175Z"
+      },
+      {
+        "id": "eab3f623a1454e50",
+        "text": "hola sumercé con gusto le ayudo",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:01.702Z"
+      },
+      {
+        "id": "efe6149278ff2f26",
+        "text": "tienes esta referencia TOI-02-01",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:26:05.043Z"
+      },
+      {
+        "id": "0f8af7cd821f9e4e",
+        "text": "sumercé tenemos 5 referencias para ese repuesto me dice cuál le interesa",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:07.189Z"
+      },
+      {
+        "id": "bc4724cee63bb014",
+        "text": "1. TOI-02-011 - BOMBA EMBRAGUE AUX. TOY. HILUX VIGO DIESEL (3/4)- - FIC-JP",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:10.230Z"
+      },
+      {
+        "id": "ab8fe2f1295c8678",
+        "text": "2. TOI-02-012 - BOMBA EMBRAGUE AUX. TOY. HILUX VIGO DIESEL (3/4) - BGF",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:13.264Z"
+      },
+      {
+        "id": "b7d012423c3b872d",
+        "text": "3. TOI-02-023 - BOMBA EMBRAGUE PPAL. TOY. 1HZ 4.2 DIESEL 96/99 - AISIN",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:16.295Z"
+      },
+      {
+        "id": "e6ada3851a992250",
+        "text": "4. TOI-02-027 - BOMBA EMBRAGUE PPAL. TOY. 4.5 (USAR SIN BOOSTER ESP. ARRIBA) - FIC-JP",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:19.335Z"
+      },
+      {
+        "id": "f2eee2473ebdc2f7",
+        "text": "5. TOI-02-036 - BOMBA EMBRAGUE PPAL. TOY. HILUX 22R - FIC-JP",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:22.361Z"
+      },
+      {
+        "id": "c70d1a5719519cf2",
+        "text": "me indica el número o la referencia que le interesa y le doy el precio",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:25.394Z"
+      },
+      {
+        "id": "1191b133746c32e3",
+        "text": "la 1",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T07:26:26.020Z"
+      },
+      {
+        "id": "38ced72f0ed50b92",
+        "text": "TOI-02-011 precio $350.000 COP \n Stock 8 unidades \n Envío Disponible \n Garantía 30 días sumercé a la orden ¿desea realizar el pedido?",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-22T07:26:31.581Z"
+      }
+    ]
+  },
+  "89391204716654@lid": {
+    "pushName": "Apach System - Soluciones Informáticas",
+    "messages": [
+      {
+        "id": "427fec7eda0a944d",
+        "text": "Interesado",
+        "fromMe": false,
+        "timestamp": "2026-03-29T04:35:12.491Z",
+        "read": true
+      },
+      {
+        "id": "bdd8c5b7374f90e0",
+        "text": "Mira",
+        "fromMe": true,
+        "timestamp": "2026-03-29T04:35:14.296Z"
+      },
+      {
+        "id": "169e72dfa3ec957e",
+        "text": "Estoy aqui para ayudarte con cualquier consulta que tengas sobre nuestros productos",
+        "fromMe": true,
+        "timestamp": "2026-03-29T04:35:17.561Z"
+      },
+      {
+        "id": "1dce04cf37988080",
+        "text": "Cualquier cosa me dices.",
+        "fromMe": true,
+        "timestamp": "2026-03-29T04:35:19.583Z"
+      },
+      {
+        "id": "fcadd8873a0d159c",
+        "text": "El audio no se escucha nada",
+        "fromMe": false,
+        "timestamp": "2026-03-29T04:35:47.731Z",
+        "read": true
+      },
+      {
+        "id": "31ad2b123b4bb8a0",
+        "text": "Vale, mira",
+        "fromMe": true,
+        "timestamp": "2026-03-29T04:35:49.562Z"
+      },
+      {
+        "id": "0ed5bb3d7959e059",
+        "text": "El curso es totalmente en video, así que no deberías tener problemas con audio",
+        "fromMe": true,
+        "timestamp": "2026-03-29T04:35:52.754Z"
+      },
+      {
+        "id": "ce6b07347ee63806",
+        "text": "Dime si necesitas ayuda con algo más.",
+        "fromMe": true,
+        "timestamp": "2026-03-29T04:35:54.780Z"
+      }
+    ]
+  },
+  "91401299706110@lid": {
+    "pushName": "ruedajuanmanuel41",
+    "messages": [
+      {
+        "id": "474c3fc0bb943d82",
+        "text": "Listo ya entré",
+        "fromMe": false,
+        "timestamp": "2026-03-29T05:02:20.672Z",
+        "read": true
+      }
+    ]
+  },
+  "20723686989999@lid": {
+    "pushName": "Wifi",
+    "messages": [
+      {
+        "id": "8677236c1d95ff0e",
+        "text": "🚨 PACK PREMIUM DE CIBERSEGURIDAD Y HACKING 2026 🚨\nBro, gracias por tu interés. Esto es lo que te lleva el pack definitivo:\n\n🔥 ¿Qué vas a aprender?\n\n✅ A protegerte de ciberataques como un profesional\n✅ A auditar sistemas y encontrar vulnerabilidades\n✅ A usar herramientas de hacking ético paso a paso\n✅ A realizar búsquedas avanzadas con Google Hacking\n✅ A automatizar tareas y extraer datos con Web Scraping\n✅ A asegurar redes y proteger tu información\n✅ Más de 15 cursos 100% prácticos, sin teoría aburrida\n✅ Explicaciones para que domines el mundo digital al toque\n\n🎯 ¿Para quién es?\n✅ Para ti, que quieres convertirte en un experto digital\n✅ Para quien busca conocimientos con demanda laboral\n✅ Para el que quiere aprender algo útil y potente\n✅ Para el que está listo para dominar la tecnología\n⏱ Duración:\nMás de 15 cursos completos con acceso de por vida\nAcceso 100% grabado para que lo veas cuando quieras\nLo estudias desde tu celu o la compu\n💰 Inversión:\nSolo $15.000 pesos. Antes $60 mil",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-29T06:34:53.851Z"
+      },
+      {
+        "id": "c68b69e155e709b5",
+        "text": "[media]",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-29T06:35:10.442Z"
+      },
+      {
+        "id": "49b9d83f1ea6f930",
+        "text": "Buenas noches bro",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-29T06:35:22.930Z"
+      },
+      {
+        "id": "4ba7dafb2456ac01",
+        "text": "Cuesta 15 mil pesos",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-29T06:35:29.169Z"
+      },
+      {
+        "id": "748e7ac21ba83db3",
+        "text": "Hay va todo el de wifi y muchos más que hay en el bajo mundo tú sabes hay buen material",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-29T06:35:55.432Z"
+      }
+    ]
+  },
+  "42018369703942@lid": {
+    "pushName": "Wifi",
+    "messages": [
+      {
+        "id": "2f4b66e01491eca6",
+        "text": "Claro",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-30T04:29:45.389Z"
+      },
+      {
+        "id": "f2da3e1a755fa124",
+        "text": "🚨 PACK PREMIUM DE CIBERSEGURIDAD Y HACKING 2026 🚨\nBro, gracias por tu interés. Esto es lo que te lleva el pack definitivo:\n\n🔥 ¿Qué vas a aprender?\n\n✅ A protegerte de ciberataques como un profesional\n✅ A auditar sistemas y encontrar vulnerabilidades\n✅ A usar herramientas de hacking ético paso a paso\n✅ A realizar búsquedas avanzadas con Google Hacking\n✅ A automatizar tareas y extraer datos con Web Scraping\n✅ A asegurar redes y proteger tu información\n✅ Más de 15 cursos 100% prácticos, sin teoría aburrida\n✅ Explicaciones para que domines el mundo digital al toque\n\n🎯 ¿Para quién es?\n✅ Para ti, que quieres convertirte en un experto digital\n✅ Para quien busca conocimientos con demanda laboral\n✅ Para el que quiere aprender algo útil y potente\n✅ Para el que está listo para dominar la tecnología\n⏱ Duración:\nMás de 15 cursos completos con acceso de por vida\nAcceso 100% grabado para que lo veas cuando quieras\nLo estudias desde tu celu o la compu\n💰 Inversión:\nSolo $15.000 pesos. Antes $60 mil",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-30T04:29:59.189Z"
+      },
+      {
+        "id": "784d4949d0aee5d5",
+        "text": "[media]",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-30T04:30:16.255Z"
+      },
+      {
+        "id": "40d72fc008682960",
+        "text": "Tienes alguna duda bro ?",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-30T04:30:46.214Z"
+      },
+      {
+        "id": "cd67e1c7780d44d7",
+        "text": "Ya sabes algo sobre hacking o ciberseguridad??",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-03-30T04:30:56.637Z"
+      }
+    ]
+  },
+  "91366856089780@lid": {
+    "pushName": "System",
+    "messages": [
+      {
+        "id": "0a6d138a606149e6",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-03-30T05:41:30.330Z"
+      },
+      {
+        "id": "e11881fe1db52bc1",
+        "text": "🚨 PACK PREMIUM DE CIBERSEGURIDAD Y HACKING 2026 🚨\nBro, gracias por tu interés. Esto es lo que te lleva el pack definitivo:\n\n🔥 ¿Qué vas a aprender?\n\n✅ A protegerte de ciberataques como un profesional\n✅ A auditar sistemas y encontrar vulnerabilidades\n✅ A usar herramientas de hacking ético paso a paso\n✅ A realizar búsquedas avanzadas con Google Hacking\n✅ A automatizar tareas y extraer datos con Web Scraping\n✅ A asegurar redes y proteger tu información\n✅ Más de 15 cursos 100% prácticos, sin teoría aburrida\n✅ Explicaciones para que domines el mundo digital al toque\n\n🎯 ¿Para quién es?\n✅ Para ti, que quieres convertirte en un experto digital\n✅ Para quien busca conocimientos con demanda laboral\n✅ Para el que quiere aprender algo útil y potente\n✅ Para el que está listo para dominar la tecnología\n⏱ Duración:\nMás de 15 cursos completos con acceso de por vida\nAcceso 100% grabado para que lo veas cuando quieras\nLo estudias desde tu celu o la compu\n💰 Inversión:\nSolo $15.000 pesos. Antes $60 mil",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-03-30T05:41:33.856Z"
+      },
+      {
+        "id": "3b49f60f5af06f8d",
+        "text": "tienes alguna duda?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-03-30T05:41:40.877Z"
+      },
+      {
+        "id": "d1d77af719dae80d",
+        "text": "ya sabes algo sobre hacking o ciberseguridad??",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-03-30T05:41:47.890Z"
+      }
+    ]
+  },
+  "120363426061233798@g.us": {
+    "pushName": "Jw",
+    "messages": []
+  },
+  "120363423507984944@g.us": {
+    "pushName": "Bot",
+    "messages": []
+  },
+  "120363422431442500@g.us": {
+    "pushName": "120363422431442500",
+    "messages": []
+  },
+  "120363422989099898@g.us": {
+    "pushName": "Criados con la misma arepa",
+    "messages": []
+  },
+  "120363427320939405@g.us": {
+    "pushName": "Repuestos probar",
+    "messages": [
+      {
+        "id": "a83af7b860febbe9",
+        "text": "dasda",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T01:09:08.743Z",
+        "read": true
+      },
+      {
+        "id": "7337a4086bb5c305",
+        "text": "dasd",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-04-18T01:09:20.664Z"
+      },
+      {
+        "id": "e0fa25a77c8b96de",
+        "text": "alguien tiene referencia para bomba de frenos que es E3998-C9 ??",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T03:20:27.888Z",
+        "read": true
+      },
+      {
+        "id": "bbe38f9d045e11ae",
+        "text": "filtro de aire para Chevrolet Spark GT 2011-2018 lo necesito",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T03:23:01.490Z",
+        "read": true
+      },
+      {
+        "id": "14ce9c14f155b640",
+        "text": "estoy buscando bujías nissan sentra con esta referencia NGK LFR5A-11",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T03:31:02.980Z",
+        "read": true
+      },
+      {
+        "id": "3e2e74678cafebf2",
+        "text": "necesito Filtro de aire E3998-C9",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T03:31:54.765Z",
+        "read": true
+      },
+      {
+        "id": "8b5ac8f6994b4a39",
+        "text": "dasdasd",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-04-18T03:45:07.759Z"
+      },
+      {
+        "id": "b46465f0e96076e8",
+        "text": "estoy buscando  embrague para Mazda 3 2010-2015 Referencia: Exedy MZK2101",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T03:51:22.842Z",
+        "read": true
+      }
+    ]
+  },
+  "97186956234961@lid": {
+    "pushName": "Luis Velez",
+    "messages": [
+      {
+        "id": "26a1785385095591",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-18T02:59:32.166Z"
+      },
+      {
+        "id": "6e2d97e19341d82b",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-18T02:59:35.707Z"
+      },
+      {
+        "id": "951f11408c8341c6",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-18T02:59:42.767Z"
+      },
+      {
+        "id": "4c856f479b23bc36",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-18T02:59:49.792Z"
+      },
+      {
+        "id": "162c62cf672b16e1",
+        "text": "El curso de hackin",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T03:00:07.302Z",
+        "read": true
+      },
+      {
+        "id": "1e3f926dbfc8a44a",
+        "text": "Sumercé con gusto le ayudo con eso",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-18T03:00:13.528Z"
+      },
+      {
+        "id": "16eacfd380723832",
+        "text": "no tenemos información de cursos",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-18T03:00:20.552Z"
+      },
+      {
+        "id": "e04464aa68771644",
+        "text": "me dice en qué se enfoca su consulta",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-18T03:00:27.572Z"
+      },
+      {
+        "id": "9f03046e1bf81b43",
+        "text": "Esto",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-18T03:00:47.323Z",
+        "read": true
+      },
+      {
+        "id": "97e2e685892ce657",
+        "text": "sumercé con gusto a la orden",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-18T03:00:53.543Z"
+      },
+      {
+        "id": "142cbf637adbf377",
+        "text": "¿en qué puedo ayudarle",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-18T03:01:00.559Z"
+      },
+      {
+        "id": "625446de0ae15736",
+        "text": "digame que repuesto necesita",
+        "fromMe": true,
+        "sender": "bot",
+        "timestamp": "2026-04-18T03:01:07.582Z"
+      },
+      {
+        "id": "6a552d7a0b3d2846",
+        "text": "Disculpa",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-04-18T03:07:41.726Z"
+      },
+      {
+        "id": "412fd5a4bdb046c8",
+        "text": "Si señor",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-04-18T03:07:43.431Z"
+      },
+      {
+        "id": "b1e346e3a0a83a6b",
+        "text": "[media]",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-04-18T03:08:06.901Z"
+      },
+      {
+        "id": "0e3c289be2df015d",
+        "text": "El curso cuesta 15 mil",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-04-18T03:08:08.710Z"
+      },
+      {
+        "id": "190a15e638f08456",
+        "text": "Me envía el correo y el comprobante",
+        "fromMe": true,
+        "sender": "agent",
+        "timestamp": "2026-04-18T03:08:28.551Z"
+      }
+    ]
+  },
+  "573503267342@s.whatsapp.net": {
+    "pushName": "System",
+    "messages": [
+      {
+        "id": "07f7fdd7a71cecf9",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:25.541Z"
+      },
+      {
+        "id": "94967b55b4b65f79",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:25.554Z"
+      },
+      {
+        "id": "a28e42f1d99ebd92",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:25.563Z"
+      },
+      {
+        "id": "31d1183156ebe448",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:29.080Z"
+      },
+      {
+        "id": "f24cce675cdca667",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:29.110Z"
+      },
+      {
+        "id": "d149f6564cb13c1c",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:29.135Z"
+      },
+      {
+        "id": "6b53dba71ab5c09b",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:29.162Z"
+      },
+      {
+        "id": "d9681d86fa75e204",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:29.705Z"
+      },
+      {
+        "id": "8c223507af5c4ff1",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:30.266Z"
+      },
+      {
+        "id": "942f78656b34b9b7",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:30.316Z"
+      },
+      {
+        "id": "034dd2f63d717ade",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:32.686Z"
+      },
+      {
+        "id": "79b06c58ed57be7a",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:33.229Z"
+      },
+      {
+        "id": "aa23308dc1f938b2",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:33.788Z"
+      },
+      {
+        "id": "1a3f3ee6a1a45b7e",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:33.834Z"
+      },
+      {
+        "id": "357cd6e8edbee762",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:36.119Z"
+      },
+      {
+        "id": "655185f1e5962320",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:36.148Z"
+      },
+      {
+        "id": "faa3c96ac2a55bed",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:36.162Z"
+      },
+      {
+        "id": "5085a76f6f654162",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:39.714Z"
+      },
+      {
+        "id": "d7e0922b8d8d9aec",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:40.245Z"
+      },
+      {
+        "id": "66c9c78201a013cd",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:40.819Z"
+      },
+      {
+        "id": "268e40c40422acd1",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:40.865Z"
+      },
+      {
+        "id": "c97d12acc7b7a5a0",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:41.940Z"
+      },
+      {
+        "id": "05d7bc7315182f41",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:43.146Z"
+      },
+      {
+        "id": "d0b8468e684f3585",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:43.166Z"
+      },
+      {
+        "id": "b85cbdad23c8a6e7",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:43.181Z"
+      },
+      {
+        "id": "cb47984ebbf3590c",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:45.460Z"
+      },
+      {
+        "id": "eb6723a4c50fbdc1",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:46.728Z"
+      },
+      {
+        "id": "d2c65a616b8cf9bf",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:47.271Z"
+      },
+      {
+        "id": "5aadcb602e8ebe51",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:47.848Z"
+      },
+      {
+        "id": "9c507f6425dad120",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:47.893Z"
+      },
+      {
+        "id": "8ecd332ff6e35a0f",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:52.483Z"
+      },
+      {
+        "id": "22883ee067ad952c",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-21T04:55:59.505Z"
+      },
+      {
+        "id": "24e1aac477f8aac4",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-21T04:59:41.826Z",
+        "read": true
+      },
+      {
+        "id": "a9363b2b9a00da49",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-21T05:00:08.296Z",
+        "read": true
+      },
+      {
+        "id": "da4c95cc2a494ad0",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-21T05:00:09.790Z",
+        "read": true
+      },
+      {
+        "id": "88439bd5f100561c",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-21T05:18:24.839Z",
+        "read": true
+      },
+      {
+        "id": "ce7f68faa97a7361",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:32.220Z"
+      },
+      {
+        "id": "377d429cc63eb8b2",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:32.239Z"
+      },
+      {
+        "id": "aacc53eb81d80232",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:32.251Z"
+      },
+      {
+        "id": "bb83a2a7c581a67a",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:34.198Z"
+      },
+      {
+        "id": "ac3cab0e328d9441",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:34.900Z"
+      },
+      {
+        "id": "0bb29c65cae5d573",
+        "text": "[Welcome Audio]",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:35.203Z"
+      },
+      {
+        "id": "83ff3832b5286147",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:35.744Z"
+      },
+      {
+        "id": "c1d5e4181260b146",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:35.761Z"
+      },
+      {
+        "id": "bf22723a16ea37f4",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:35.768Z"
+      },
+      {
+        "id": "f5e389e5853831b6",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:37.716Z"
+      },
+      {
+        "id": "b9d37ea61a2eda41",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:38.414Z"
+      },
+      {
+        "id": "749df175ac498958",
+        "text": "Hola, como estas ?",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:38.727Z"
+      },
+      {
+        "id": "b376d721f778150e",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:42.756Z"
+      },
+      {
+        "id": "0a5a893764a88f20",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:42.786Z"
+      },
+      {
+        "id": "dd7067f80686b2f4",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:42.793Z"
+      },
+      {
+        "id": "9330b9c6e7215864",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:44.740Z"
+      },
+      {
+        "id": "bd83b0e2de97c455",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:45.440Z"
+      },
+      {
+        "id": "af2f2d2c7d70dc5d",
+        "text": "¿En qué repuesto te podemos ayudar hoy? 🔧",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:45.754Z"
+      },
+      {
+        "id": "58a1193604d9bfd4",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:49.768Z"
+      },
+      {
+        "id": "ef22f600e84f6e97",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:49.801Z"
+      },
+      {
+        "id": "2d590280208d1f34",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:49.807Z"
+      },
+      {
+        "id": "c5be4dd043d54baa",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:51.752Z"
+      },
+      {
+        "id": "bd9d09b122b65c94",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:52.466Z"
+      },
+      {
+        "id": "06f0abbf5c47cfa5",
+        "text": "Puedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
+        "fromMe": true,
+        "sender": "system",
+        "timestamp": "2026-04-22T06:47:52.778Z"
+      },
+      {
+        "id": "2e8c64983aae4b42",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:47:57.649Z",
+        "read": true
+      },
+      {
+        "id": "c950f15744f394fb",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:48:08.457Z",
+        "read": true
+      },
+      {
+        "id": "aab6f30f7b17c056",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:48:12.903Z",
+        "read": true
+      },
+      {
+        "id": "0b3068b39c7dbfd4",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:48:13.516Z",
+        "read": true
+      },
+      {
+        "id": "b100081884ecf6c4",
+        "text": "[media]",
+        "fromMe": false,
+        "sender": "client",
+        "timestamp": "2026-04-22T06:48:14.219Z",
+        "read": true
+      }
+    ]
+  }
+}

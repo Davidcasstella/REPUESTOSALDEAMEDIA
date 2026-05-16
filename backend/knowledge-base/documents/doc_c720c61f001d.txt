@@ -1,0 +1,43 @@
+CURSO DE AUDITORÍA DE REDES WIFI - PREGUNTAS FRECUENTES
+
+¿Qué voy a aprender en este curso?
+Aprenderás a auditar redes WiFi en entornos controlados y de laboratorio. Entenderás cómo funcionan las redes inalámbricas, cómo se evalúa su seguridad y cómo identificar vulnerabilidades de manera ética y profesional.
+
+¿Necesito conocimientos previos para tomarlo?
+No necesitas conocimientos previos. El curso comienza desde cero, incluyendo la instalación y uso de Kali Linux, manejo básico de la terminal y ejecución de herramientas paso a paso.
+
+¿Cuánto dura el curso y cuántas horas tiene?
+El curso tiene una duración aproximada de 2 horas de contenido grabado. El tiempo real dependerá de tu ritmo de aprendizaje.
+
+¿El curso es en vivo o grabado?
+El curso es 100% grabado. Puedes verlo cuando quieras y repetir las clases las veces que necesites.
+
+¿Tiene soporte o puedo hacer preguntas si me trabo?
+Sí, el curso ofrece asesoría personalizada opcional con un costo adicional de 100.000 pesos colombianos.
+
+¿Qué equipo o herramientas necesito para tomarlo?
+Solo necesitas un computador, conexión a internet y ganas de aprender.
+
+¿El curso es legal? ¿Puedo meterme en problemas?
+El curso enseña auditoría de redes en entornos controlados y propios. El uso indebido de la información puede ser ilegal. Es responsabilidad del estudiante utilizar el conocimiento únicamente con autorización y de manera ética.
+
+¿Cuánto cuesta y cómo se paga?
+El curso tiene un valor de 15.000 pesos colombianos. Se puede pagar por Nequi o Bancolombia.
+
+¿Para qué me sirve esto en la vida real o laboralmente?
+Te permite entender cómo funcionan las redes WiFi, identificar vulnerabilidades en tus propias redes y adquirir conocimientos básicos en ciberseguridad aplicables en el área tecnológica.
+
+¿Puedo acceder al curso desde el celular?
+Sí, puedes acceder al contenido desde tu celular.
+
+¿Cada cuánto se actualiza el contenido?
+El contenido se actualiza aproximadamente cada dos meses.
+
+¿Qué diferencia este curso de otros cursos similares?
+Es práctico, directo y enfocado en ejecución real paso a paso. No es solo teoría, sino práctica aplicada.
+
+¿Puedo hackear el WiFi de mi vecino con esto?
+No. El curso no está diseñado para realizar actividades ilegales. Está enfocado en auditorías éticas y aprendizaje técnico en redes propias o con autorización.
+
+¿Hay devolución del dinero si no me gusta?
+No hay devoluciones, ya que el contenido es digital y de acceso inmediato.

@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root {
+    /* ── Professional Light Theme — Automotive ── */
+    --bg-deep: #F0F4F8;
+    --bg-sidebar: #FFFFFF;
+    --bg-panel: #F0F4F8;
+    --bg-main: #F0F4F8;
+    --bg-card: #FFFFFF;
+    --bg-secondary: #E8EEF4;
+    --accent-blue: #1a1a1a;
+    --accent-blue-glow: rgba(26, 26, 26, 0.20);
+    --text-primary: #000000;
+    --text-secondary: #000000;
+    --text-muted: #000000;
+    --border-light: #D9E2EC;
+    --glass-bg: #FFFFFF;
+    --glass-blur: blur(14px);
+    /* Palette aliases */
+    --neon-cyan: #1a1a1a;
+    --neon-purple: #1a1a1a;
+    --neon-green: #1a1a1a;
+    --neon-yellow: #f59e0b;
+    --neon-red: #e53e3e;
+    /* Primary */
+    --primary-color: #1a1a1a;
+    --primary-gradient: linear-gradient(135deg, #1a1a1a, #1a1a1a);
+    /* Shadows */
+    --glow: rgba(26, 26, 26, 0.25);
+    --glow2: rgba(26, 26, 26, 0.08);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #F0F4F8;
+    color: #000000;
+    font-weight: 600;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+}
+
+/* Dragon Background Container — very subtle on light theme */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('./Logo/Dragon_on_mountains_breathing_fire_eb09e58a16.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.03;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Light overlay */
+.dragon-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(240, 244, 248, 0.65);
+    z-index: 0;
+    pointer-events: none;
+}
+
+#root {
+    height: 100%;
+    position: relative;
+    z-index: 1;
+}
+
+.premium-card {
+    background: #FFFFFF;
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid #D9E2EC;
+    border-radius: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+button {
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+input,
+textarea,
+select {
+    background: #FFFFFF;
+    border: 1px solid #CBD2D9;
+    border-radius: 12px;
+    color: #000000;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s;
+    caret-color: #1a1a1a;
+    font-family: 'Montserrat', sans-serif;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: #1a1a1a;
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.12);
+}
+
+.glow-blue {
+    box-shadow: 0 0 20px rgba(26, 26, 26, 0.18);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F0F4F8;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #CBD2D9;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #9AA5B1;
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-color: #CBD2D9 #F0F4F8;
+    scrollbar-width: thin;
+}

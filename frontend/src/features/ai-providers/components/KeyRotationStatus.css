@@ -1,0 +1,617 @@
+/* ============================================================
+   KEY ROTATION STATUS WIDGET — Cyber Neon Theme
+   Visual indicator for API key rotation state.
+   ============================================================ */
+
+/* ── WIDGET CONTAINER ── */
+.key-rotation-widget {
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Subtle scan-line overlay for terminal feel */
+.key-rotation-widget::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(26, 26, 26, 0.015) 2px,
+            rgba(26, 26, 26, 0.015) 4px);
+    z-index: 1;
+}
+
+/* ── STATE BORDERS ── */
+.key-rotation-widget.idle {
+    border-color: rgba(0, 170, 255, 0.2) !important;
+}
+
+.key-rotation-widget.active {
+    border-color: rgba(26, 26, 26, 0.35) !important;
+    box-shadow: 0 0 20px rgba(26, 26, 26, 0.08), 0 0 40px rgba(26, 26, 26, 0.03) !important;
+}
+
+.key-rotation-widget.rotated {
+    border-color: rgba(26, 26, 26, 0.4) !important;
+    box-shadow: 0 0 20px rgba(26, 26, 26, 0.1), 0 0 40px rgba(26, 26, 26, 0.04) !important;
+}
+
+.key-rotation-widget.exhausted {
+    border-color: rgba(26, 26, 26, 0.4) !important;
+    box-shadow: 0 0 20px rgba(26, 26, 26, 0.12), 0 0 40px rgba(26, 26, 26, 0.05) !important;
+}
+
+/* ── ROTATION ANIMATION (flash on key switch) ── */
+.key-rotation-widget.kr-animating {
+    animation: kr-flash 0.6s ease-out;
+}
+
+@keyframes kr-flash {
+    0% {
+        box-shadow: 0 0 40px rgba(26, 26, 26, 0.5), 0 0 80px rgba(26, 26, 26, 0.2), inset 0 0 30px rgba(26, 26, 26, 0.08);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(26, 26, 26, 0.25), 0 0 40px rgba(26, 26, 26, 0.1);
+    }
+
+    100% {
+        box-shadow: 0 0 15px rgba(26, 26, 26, 0.1);
+    }
+}
+
+.key-rotation-widget.exhausted.kr-animating {
+    animation: kr-flash-red 0.8s ease-out;
+}
+
+@keyframes kr-flash-red {
+    0% {
+        box-shadow: 0 0 50px rgba(26, 26, 26, 0.6), 0 0 100px rgba(26, 26, 26, 0.25), inset 0 0 40px rgba(26, 26, 26, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(26, 26, 26, 0.3), 0 0 50px rgba(26, 26, 26, 0.12);
+    }
+
+    100% {
+        box-shadow: 0 0 20px rgba(26, 26, 26, 0.12), 0 0 40px rgba(26, 26, 26, 0.05);
+    }
+}
+
+/* ── HEADER ── */
+.kr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+.kr-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kr-bolt-icon {
+    color: #00aaff;
+    filter: drop-shadow(0 0 6px rgba(0, 170, 255, 0.5));
+    animation: kr-bolt-glow 3s ease-in-out infinite;
+}
+
+@keyframes kr-bolt-glow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 4px rgba(0, 170, 255, 0.4));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 10px rgba(0, 170, 255, 0.8));
+    }
+}
+
+.kr-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #00aaff;
+    text-shadow: 0 0 8px rgba(0, 170, 255, 0.35);
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* ── STATUS BADGE ── */
+.kr-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 50px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.kr-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.kr-status-badge.idle {
+    color: #00aaff;
+    background: rgba(0, 170, 255, 0.08);
+    border: 1px solid rgba(0, 170, 255, 0.25);
+}
+
+.kr-status-badge.idle .kr-status-dot {
+    background: #00aaff;
+    box-shadow: 0 0 6px rgba(0, 170, 255, 0.6);
+}
+
+.kr-status-badge.active {
+    color: #1a1a1a;
+    background: rgba(26, 26, 26, 0.08);
+    border: 1px solid rgba(26, 26, 26, 0.25);
+}
+
+.kr-status-badge.active .kr-status-dot {
+    background: #1a1a1a;
+    box-shadow: 0 0 6px rgba(26, 26, 26, 0.8);
+    animation: kr-pulse-green 2s ease-in-out infinite;
+}
+
+.kr-status-badge.rotated {
+    color: #1a1a1a;
+    background: rgba(26, 26, 26, 0.08);
+    border: 1px solid rgba(26, 26, 26, 0.3);
+}
+
+.kr-status-badge.rotated .kr-status-dot {
+    background: #1a1a1a;
+    box-shadow: 0 0 6px rgba(26, 26, 26, 0.8);
+    animation: kr-pulse-orange 1.5s ease-in-out infinite;
+}
+
+.kr-status-badge.exhausted {
+    color: #1a1a1a;
+    background: rgba(26, 26, 26, 0.1);
+    border: 1px solid rgba(26, 26, 26, 0.35);
+}
+
+.kr-status-badge.exhausted .kr-status-dot {
+    background: #1a1a1a;
+    box-shadow: 0 0 8px rgba(26, 26, 26, 0.9);
+    animation: kr-pulse-red 1s ease-in-out infinite;
+}
+
+/* ── PULSE ANIMATIONS ── */
+@keyframes kr-pulse-green {
+
+    0%,
+    100% {
+        box-shadow: 0 0 4px rgba(26, 26, 26, 0.6);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 12px rgba(26, 26, 26, 1);
+        transform: scale(1.3);
+    }
+}
+
+@keyframes kr-pulse-orange {
+
+    0%,
+    100% {
+        box-shadow: 0 0 4px rgba(26, 26, 26, 0.6);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 12px rgba(26, 26, 26, 1);
+        transform: scale(1.3);
+    }
+}
+
+@keyframes kr-pulse-red {
+
+    0%,
+    100% {
+        box-shadow: 0 0 4px rgba(26, 26, 26, 0.6);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 14px rgba(26, 26, 26, 1);
+        transform: scale(1.35);
+    }
+}
+
+/* ── BODY / ACTIVE DISPLAY ── */
+.kr-body {
+    position: relative;
+    z-index: 2;
+}
+
+.kr-active-display {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(26, 26, 26, 0.1);
+    transition: all 0.3s ease;
+}
+
+.kr-active-display.idle {
+    border-color: rgba(0, 170, 255, 0.12);
+}
+
+.kr-active-display.active {
+    border-color: rgba(26, 26, 26, 0.15);
+    background: rgba(26, 26, 26, 0.02);
+}
+
+.kr-active-display.rotated {
+    border-color: rgba(26, 26, 26, 0.18);
+    background: rgba(26, 26, 26, 0.02);
+}
+
+.kr-active-display.exhausted {
+    border-color: rgba(26, 26, 26, 0.2);
+    background: rgba(26, 26, 26, 0.03);
+}
+
+/* ── ICON CONTAINER ── */
+.kr-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.kr-active-display.idle .kr-icon-container {
+    background: rgba(0, 170, 255, 0.1);
+    color: #00aaff;
+    box-shadow: 0 0 10px rgba(0, 170, 255, 0.15);
+}
+
+.kr-active-display.active .kr-icon-container {
+    background: rgba(26, 26, 26, 0.1);
+    color: #1a1a1a;
+    box-shadow: 0 0 10px rgba(26, 26, 26, 0.2);
+}
+
+.kr-active-display.rotated .kr-icon-container {
+    background: rgba(26, 26, 26, 0.12);
+    color: #1a1a1a;
+    box-shadow: 0 0 10px rgba(26, 26, 26, 0.2);
+}
+
+.kr-active-display.exhausted .kr-icon-container {
+    background: rgba(26, 26, 26, 0.12);
+    color: #1a1a1a;
+    box-shadow: 0 0 10px rgba(26, 26, 26, 0.2);
+}
+
+/* Spin animation for the rotated icon */
+.kr-active-display.rotated .kr-icon-container svg {
+    animation: kr-spin 1.2s ease-in-out;
+}
+
+@keyframes kr-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── INFO TEXT ── */
+.kr-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.kr-key-mask {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(26, 26, 26, 0.85);
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kr-active-display.idle .kr-key-mask {
+    color: rgba(0, 170, 255, 0.6);
+}
+
+.kr-active-display.rotated .kr-key-mask {
+    color: rgba(26, 26, 26, 0.9);
+    text-shadow: 0 0 6px rgba(26, 26, 26, 0.3);
+}
+
+.kr-active-display.exhausted .kr-key-mask {
+    color: rgba(26, 26, 26, 0.9);
+    text-shadow: 0 0 6px rgba(26, 26, 26, 0.3);
+}
+
+.kr-timestamp {
+    font-size: 0.65rem;
+    color: rgba(26, 26, 26, 0.3);
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.05em;
+}
+
+/* ── KEY STRIP (slot indicators) ── */
+.kr-keys-strip {
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(26, 26, 26, 0.08);
+}
+
+.kr-keys-label {
+    display: block;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(0, 170, 255, 0.4);
+    margin-bottom: 0.5rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.kr-key-slots {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.kr-key-slot {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(26, 26, 26, 0.1);
+    transition: all 0.3s ease;
+    cursor: default;
+    min-width: 0;
+}
+
+.kr-key-slot.primary {
+    border-color: rgba(26, 26, 26, 0.25);
+    background: rgba(26, 26, 26, 0.04);
+}
+
+.kr-key-slot.in-use {
+    border-color: rgba(26, 26, 26, 0.5) !important;
+    background: rgba(26, 26, 26, 0.08) !important;
+    box-shadow: 0 0 12px rgba(26, 26, 26, 0.15), inset 0 0 8px rgba(26, 26, 26, 0.03);
+}
+
+.kr-key-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    font-weight: 700;
+    background: rgba(26, 26, 26, 0.1);
+    color: rgba(26, 26, 26, 0.6);
+    flex-shrink: 0;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.kr-key-slot.in-use .kr-key-num {
+    background: rgba(26, 26, 26, 0.2);
+    color: #1a1a1a;
+    box-shadow: 0 0 6px rgba(26, 26, 26, 0.3);
+}
+
+.kr-key-preview {
+    font-size: 0.65rem;
+    color: rgba(26, 26, 26, 0.35);
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+.kr-key-slot.in-use .kr-key-preview {
+    color: rgba(26, 26, 26, 0.7);
+}
+
+/* ── CURRENT ACTIVE PROVIDER ── */
+.kr-current-provider {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: rgba(26, 26, 26, 0.03);
+    border: 1px solid rgba(26, 26, 26, 0.15);
+    transition: all 0.3s ease;
+}
+
+.kr-current-provider:hover {
+    border-color: rgba(26, 26, 26, 0.3);
+    box-shadow: 0 0 15px rgba(26, 26, 26, 0.06);
+}
+
+.kr-no-provider {
+    background: rgba(26, 26, 26, 0.02);
+    border-color: rgba(26, 26, 26, 0.12);
+}
+
+.kr-current-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(26, 26, 26, 0.5);
+    margin-bottom: 0.5rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.kr-live-dot {
+    color: #1a1a1a;
+    animation: kr-pulse-green 1.5s ease-in-out infinite;
+}
+
+.kr-current-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.kr-current-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(26, 26, 26, 0.1);
+    color: #1a1a1a;
+    box-shadow: 0 0 12px rgba(26, 26, 26, 0.15);
+    flex-shrink: 0;
+}
+
+.kr-current-icon.idle {
+    background: rgba(26, 26, 26, 0.1);
+    color: #1a1a1a;
+    box-shadow: 0 0 12px rgba(26, 26, 26, 0.15);
+}
+
+.kr-current-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.kr-current-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-shadow: 0 0 10px rgba(26, 26, 26, 0.4);
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.05em;
+}
+
+.kr-current-name.dim {
+    color: rgba(26, 26, 26, 0.7);
+    text-shadow: 0 0 8px rgba(26, 26, 26, 0.3);
+    font-size: 0.85rem;
+}
+
+.kr-current-key {
+    font-size: 0.7rem;
+    color: rgba(26, 26, 26, 0.35);
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kr-current-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.65rem;
+    border-radius: 50px;
+    color: #1a1a1a;
+    background: rgba(26, 26, 26, 0.08);
+    border: 1px solid rgba(26, 26, 26, 0.3);
+    font-family: 'Montserrat', sans-serif;
+    flex-shrink: 0;
+}
+
+.kr-live-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    box-shadow: 0 0 8px rgba(26, 26, 26, 0.8);
+    animation: kr-pulse-green 1.5s ease-in-out infinite;
+}
+
+/* ── KEY SLOT PROVIDER TAG ── */
+.kr-key-provider-tag {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: rgba(0, 170, 255, 0.6);
+    font-family: 'Montserrat', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+}
+
+.kr-key-slot.primary .kr-key-provider-tag {
+    color: rgba(26, 26, 26, 0.7);
+}
+
+.kr-key-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    box-shadow: 0 0 6px rgba(26, 26, 26, 0.8);
+    animation: kr-pulse-green 2s ease-in-out infinite;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .key-rotation-widget {
+        padding: 1rem;
+    }
+
+    .kr-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .kr-key-preview {
+        max-width: 70px;
+    }
+}

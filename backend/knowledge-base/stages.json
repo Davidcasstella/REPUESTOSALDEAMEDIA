@@ -1,0 +1,72 @@
+[
+  {
+    "id": "stage_general",
+    "name": "General",
+    "active": true,
+    "isDefault": true,
+    "createdAt": "2026-04-19T19:07:45.114Z"
+  },
+  {
+    "id": "stage_mo65k63xvwod",
+    "name": "MARZO",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T19:22:02.349Z"
+  },
+  {
+    "id": "stage_mo69l8nfu8mk",
+    "name": "ABRI",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:14:50.763Z"
+  },
+  {
+    "id": "stage_mo69ld1athyc",
+    "name": "SDASd",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:14:56.446Z"
+  },
+  {
+    "id": "stage_mo69lh9lh1kk",
+    "name": "sdasdasad",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:15:01.929Z"
+  },
+  {
+    "id": "stage_mo69ljrlwbj5",
+    "name": "dsdasd",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:15:05.169Z"
+  },
+  {
+    "id": "stage_mo69lmnwvfru",
+    "name": "asdas",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:15:08.924Z"
+  },
+  {
+    "id": "stage_mo69lpgz82pa",
+    "name": "asdasd",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:15:12.563Z"
+  },
+  {
+    "id": "stage_mo69ls6mvy9v",
+    "name": "dasdasd",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:15:16.078Z"
+  },
+  {
+    "id": "stage_mo69lvc6ekzc",
+    "name": "dasdasdasdasd",
+    "active": true,
+    "isDefault": false,
+    "createdAt": "2026-04-19T21:15:20.166Z"
+  }
+]
