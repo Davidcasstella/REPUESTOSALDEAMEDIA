@@ -177,7 +177,8 @@ router.setDependencies = (whatsapp, chatHistoryService) => {
  * POST /api/groups/sync
  * Fetches ALL groups from WhatsApp (via Baileys) and saves their metadata
  * to chat-history so they appear immediately in the dashboard.
- * This is a one-time "import" — future messages are saved automatically.
+ * Responds immediately (202) and processes in background to avoid
+ * Cloudflare tunnel timeout (524) on slow WhatsApp group fetches.
  */
 router.post('/sync', async (req, res) => {
     try {
@@ -188,28 +189,36 @@ router.post('/sync', async (req, res) => {
             return res.status(503).json({ success: false, message: 'Chat history service not available' });
         }
 
-        // Fetch all groups from WhatsApp
-        const groups = await _whatsapp.sock.groupFetchAllParticipating();
-        const groupEntries = Object.values(groups);
+        // Respond immediately so Cloudflare tunnel doesn't timeout (524)
+        res.json({ success: true, message: 'Group sync started in background' });
 
-        let synced = 0;
-        for (const group of groupEntries) {
-            const jid = group.id; // e.g. "120363123456789@g.us"
-            const name = group.subject || jid.replace('@g.us', '');
-
+        // Process groups asynchronously after responding
+        setImmediate(async () => {
             try {
-                // Force-update the group name in chat-history (direct write)
-                await _chatHistoryService.ensureGroupEntry(jid, name);
-                synced++;
-            } catch (_) { }
-        }
+                const groups = await _whatsapp.sock.groupFetchAllParticipating();
+                const groupEntries = Object.values(groups);
 
-        res.json({
-            success: true,
-            message: `Synced ${synced} groups from WhatsApp`,
-            totalGroups: groupEntries.length,
-            synced
+                let synced = 0;
+                for (const group of groupEntries) {
+                    const jid = group.id;
+                    const name = group.subject || jid.replace('@g.us', '');
+                    try {
+                        await _chatHistoryService.ensureGroupEntry(jid, name);
+                        synced++;
+                    } catch (_) { }
+                }
+
+                // Notify frontend via socket.io when sync is complete
+                const io = router._io;
+                if (io) {
+                    io.emit('groups:synced', { synced, totalGroups: groupEntries.length });
+                }
+                console.log(`✅ Group sync complete: ${synced}/${groupEntries.length} groups`);
+            } catch (bgError) {
+                console.error('Error in background group sync:', bgError);
+            }
         });
+
     } catch (error) {
         console.error('Error syncing groups:', error);
         res.status(500).json({ success: false, message: error.message });
