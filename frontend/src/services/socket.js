@@ -1,8 +1,7 @@
 import { io } from 'socket.io-client';
 
-const URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : window.location.origin;
+// Use env variable for backend URL - set VITE_API_URL in .env or Vercel dashboard
+const URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const socket = io(URL, {
     autoConnect: true,
