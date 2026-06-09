@@ -36,11 +36,22 @@ global.aiEnabled = true;
 
 
 const app = express();
-app.use(cors()); // Habilitar CORS para todas las rutas
+
+// Explicit CORS config — required for Cloudflare Tunnel + Vercel cross-origin requests
+const corsOptions = {
+    origin: true, // Reflect the request origin (allows any origin)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: false
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight requests for all routes
+
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: '*' }
+    cors: { origin: '*', methods: ['GET', 'POST'] }
 });
+
 
 // Expose io to routes via app.set
 app.set('io', io);
