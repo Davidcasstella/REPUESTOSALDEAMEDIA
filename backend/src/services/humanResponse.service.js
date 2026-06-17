@@ -107,28 +107,33 @@ class HumanResponseService {
      * If no delimiter: returns the response as a single message.
      */
     splitResponse(text, options = {}) {
-        const trimmed = text.trim();
+        // Clean typos like "dimei"
+        const cleaned = text.replace(/\bdimei\b/gi, 'dime').replace(/\bdimei\?/gi, 'dime?');
+        const trimmed = cleaned.trim();
+        let parts = [];
 
         if (trimmed.includes('|||')) {
-            const parts = trimmed.split('|||').map(p => p.trim()).filter(p => p.length > 0);
-
-            // Return up to 7 parts — exactly as the AI decided
-            // This supports product listings (intro + 5 products + closing)
-            if (parts.length > 7) {
-                // Cap at 7: keep first 6 + merge the rest into the last
-                return [...parts.slice(0, 6), parts.slice(6).join('. ')];
-            }
-            return parts;
+            parts = trimmed.split('|||').map(p => p.trim()).filter(p => p.length > 0);
+        } else if (trimmed.includes('\n')) {
+            parts = trimmed.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+        } else {
+            parts = [trimmed];
         }
 
-        // No delimiter — single message response
+        // Return up to 7 parts — exactly as the AI decided
+        // This supports product listings (intro + 5 products + closing)
+        if (parts.length > 7) {
+            // Cap at 7: keep first 6 + merge the rest into the last
+            return [...parts.slice(0, 6), parts.slice(6).join('. ')];
+        }
+
         // Only add a closing if the response is very short (likely a greeting/ack)
-        if (trimmed.length < 40 && options.isPostWelcomeFlow) {
+        if (parts.length === 1 && parts[0].length < 40 && options.isPostWelcomeFlow) {
             const closing = this._random(POST_FLOW_CLOSINGS);
-            return [trimmed, closing];
+            return [parts[0], closing];
         }
 
-        return [trimmed];
+        return parts;
     }
 
     /**

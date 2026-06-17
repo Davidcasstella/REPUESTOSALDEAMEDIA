@@ -7,11 +7,10 @@
  */
 
 const { putItem, getItem, scanItems, batchPutItems, deleteItem } = require('../config/dynamodb');
+const { MARGIN_PERCENT, CHATBOT_PERCENT, IVA_PERCENT } = require('../config/pricingConfig');
+const productNormalizer = require('./productNormalizer');
 
 const TABLE = 'products';
-
-// Price markup: IVA 19% + 30% margin (base × 1.19 × 1.30)
-const PRICE_MARKUP = 1.19 * 1.30;
 
 class ProductCatalogService {
     /**
@@ -32,24 +31,17 @@ class ProductCatalogService {
             return true;
         });
 
-        // Prepare items for batch write
-        const items = validProducts.map(p => ({
-            codigo: p.codigo.trim().toUpperCase(),
-            ref_oem: p.ref_oem || null,
-            ref_fabrica: p.ref_fabrica || null,
-            descripcion: p.descripcion || null,
-            marca: p.marca || null,
-            precio_base: p.precio_base || 0,
-            catalog_source: catalogSource,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            // Search helpers: lowercase versions for case-insensitive search
-            _codigo_lower: (p.codigo || '').trim().toLowerCase(),
-            _ref_oem_lower: (p.ref_oem || '').trim().toLowerCase(),
-            _ref_fabrica_lower: (p.ref_fabrica || '').trim().toLowerCase(),
-            _descripcion_lower: (p.descripcion || '').trim().toLowerCase(),
-            _marca_lower: (p.marca || '').trim().toLowerCase()
-        }));
+        // Normalize and prepare items for batch write
+        const items = validProducts.map(p => {
+            // Use normalizer if product doesn't already have _code_variants
+            const normalized = p._code_variants ? p : productNormalizer.normalizeProduct(p);
+            return {
+                ...normalized,
+                catalog_source: catalogSource,
+                created_at: p.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+        });
 
         try {
             await batchPutItems(TABLE, items);
@@ -79,27 +71,47 @@ class ProductCatalogService {
      */
     async searchByReference(query) {
         const cleanQuery = query.trim().toLowerCase();
+        const normalizedQuery = productNormalizer.normalizeQuery(query);
         
         try {
             const allItems = await scanItems(TABLE);
             
-            // Exact matches first, then partial
-            const exact = [];
+            // Level 1: Exact code match
+            const exactCode = [];
+            // Level 2: Code variant match
+            const variantMatch = [];
+            // Level 3: Partial code match
             const partial = [];
 
             for (const item of allItems) {
                 const codigo = (item._codigo_lower || item.codigo || '').toLowerCase();
+                const codigoNorm = (item._codigo_normalized || '').toLowerCase();
                 const refOem = (item._ref_oem_lower || item.ref_oem || '').toLowerCase();
                 const refFab = (item._ref_fabrica_lower || item.ref_fabrica || '').toLowerCase();
+                const codeVariants = item._code_variants || [];
 
+                // Level 1: Exact match on primary codes
                 if (codigo === cleanQuery || refOem === cleanQuery || refFab === cleanQuery) {
-                    exact.push(item);
-                } else if (codigo.includes(cleanQuery) || refOem.includes(cleanQuery) || refFab.includes(cleanQuery)) {
+                    exactCode.push(item);
+                }
+                // Level 2: Match against normalized code or variants
+                else if (
+                    codigoNorm === normalizedQuery ||
+                    codeVariants.some(v => v.toLowerCase() === cleanQuery || v.toLowerCase() === normalizedQuery)
+                ) {
+                    variantMatch.push(item);
+                }
+                // Level 3: Partial match
+                else if (
+                    codigo.includes(cleanQuery) || cleanQuery.includes(codigo) ||
+                    refOem.includes(cleanQuery) || refFab.includes(cleanQuery) ||
+                    codigoNorm.includes(normalizedQuery)
+                ) {
                     partial.push(item);
                 }
             }
 
-            const results = [...exact, ...partial].slice(0, 10);
+            const results = [...exactCode, ...variantMatch, ...partial].slice(0, 10);
             return results.map(row => this._addFinalPrice(row));
         } catch (err) {
             console.error(`❌ Search error: ${err.message}`);
@@ -152,14 +164,30 @@ class ProductCatalogService {
     }
 
     /**
-     * Universal search: tries reference first, then description.
+     * Universal search with 5-level hierarchy:
+     *   Level 1: Exact code match (via getByCode)
+     *   Level 2: Code variant match (via _code_variants)
+     *   Level 3: Partial code match (via includes)
+     *   Level 4: Description word match
+     *   Level 5: Fallback to RAG semantic (handled by caller)
      * @param {string} query - Search query
      * @returns {Array} - Matching products
      */
     async search(query) {
+        // Level 1: Try exact code lookup first (O(1) DynamoDB getItem)
+        const exactProduct = await this.getByCode(query);
+        if (exactProduct) return [exactProduct];
+
+        // Levels 2-3: Reference search (variants + partial)
         let results = await this.searchByReference(query);
         if (results.length > 0) return results;
-        return this.searchByDescription(query);
+
+        // Level 4: Description search
+        results = await this.searchByDescription(query);
+        if (results.length > 0) return results;
+
+        // Level 5: No results — caller should fallback to RAG/semantic
+        return [];
     }
 
     /**
@@ -226,11 +254,17 @@ class ProductCatalogService {
 
             const avgPrice = priceCount > 0 ? Math.round(priceSum / priceCount) : 0;
 
+            // Calculate average final price using the centralized formula
+            const avgMargin = avgPrice * (MARGIN_PERCENT / 100);
+            const avgChatbot = avgPrice * (CHATBOT_PERCENT / 100);
+            const avgSubtotal = avgPrice + avgMargin + avgChatbot;
+            const avgIva = avgSubtotal * (IVA_PERCENT / 100);
+
             return {
                 totalProducts,
                 brands,
                 avgPrice,
-                avgPriceFinal: Math.round(avgPrice * PRICE_MARKUP),
+                avgPriceFinal: Math.round(avgSubtotal + avgIva),
             };
         } catch (err) {
             console.error(`❌ Stats error: ${err.message}`);
@@ -308,15 +342,15 @@ class ProductCatalogService {
         }
 
         // Pattern 1: OEM-style references
-        const oemPattern = /\b(\d{4,5}[-]?\w{3,8})\b/gi;
+        const oemPattern = /\b(\d{4,5}[-\s]?\w{3,8})\b/gi;
         const oemMatches = text.match(oemPattern);
 
         // Pattern 2: Internal codes
-        const codePattern = /\b([A-Z]{2,4}[-]?\d{2}[-]?\d{3,4})\b/gi;
+        const codePattern = /\b([A-Z]{2,4}[-\s]?\d{2}[-\s]?\d{3,4})\b/gi;
         const codeMatches = text.match(codePattern);
 
         // Pattern 3: Manufacturer ref codes
-        const refFabPattern = /\b([A-Z]\w{2,10}[-](?:STD|\d{1,2}\.?\d{0,2}|\w{2,10}))\b/gi;
+        const refFabPattern = /\b([A-Z]\w{2,10}[-\s](?:STD|\d{1,2}\.?\d{0,2}|\w{2,10}))\b/gi;
         const refFabMatches = text.match(refFabPattern);
 
         const allRefs = [...(codeMatches || []), ...(oemMatches || []), ...(refFabMatches || [])];
@@ -413,11 +447,54 @@ class ProductCatalogService {
         return desc.substring(0, 77) + '...';
     }
 
+    /**
+     * Adds precio_final to a product row using centralized pricing config.
+     * Formula: Subtotal = Base + Margin + Chatbot, then IVA on Subtotal.
+     */
     _addFinalPrice(row) {
+        const breakdown = this._getPriceBreakdown(row);
         return {
             ...row,
-            precio_final: Math.round((row.precio_base || 0) * PRICE_MARKUP),
+            precio_final: breakdown.precio_final,
         };
+    }
+
+    /**
+     * Returns a full price breakdown object for a product.
+     * Used by the admin panel to display how the final price is constructed.
+     * @param {Object} row - Product row with precio_base
+     * @returns {Object} - { precio_base, margen, gastos_chatbot, subtotal, iva, precio_final, config }
+     */
+    _getPriceBreakdown(row) {
+        const base = row.precio_base || 0;
+        const margen = base * (MARGIN_PERCENT / 100);
+        const gastos_chatbot = base * (CHATBOT_PERCENT / 100);
+        const subtotal = base + margen + gastos_chatbot;
+        const iva = subtotal * (IVA_PERCENT / 100);
+        const precio_final = Math.round(subtotal + iva);
+
+        return {
+            precio_base: base,
+            margen: Math.round(margen),
+            gastos_chatbot: Math.round(gastos_chatbot),
+            subtotal: Math.round(subtotal),
+            iva: Math.round(iva),
+            precio_final,
+            config: {
+                margin_percent: MARGIN_PERCENT,
+                chatbot_percent: CHATBOT_PERCENT,
+                iva_percent: IVA_PERCENT,
+            },
+        };
+    }
+
+    /**
+     * Public method to get price breakdown for a product.
+     * @param {Object} product - Product object with precio_base
+     * @returns {Object} - Full price breakdown
+     */
+    getPriceBreakdown(product) {
+        return this._getPriceBreakdown(product);
     }
 
     _formatNumber(num) {

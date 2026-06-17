@@ -19,6 +19,12 @@ const chatRoutes = require('./routes/chat.routes');
 const groupsRoutes = require('./routes/groups.routes');
 const demandAnalyticsRoutes = require('./routes/demandAnalytics.routes');
 const productCatalogRoutes = require('./routes/productCatalog.routes');
+const quickRepliesRoutes = require('./routes/quickReplies.routes');
+const guideRulesRoutes = require('./routes/guideRules.routes');
+const campaignsRoutes = require('./routes/campaigns.routes');
+const contactsRoutes = require('./routes/contacts.routes');
+const leadsRoutes = require('./routes/leads.routes');
+const alertConfigRoutes = require('./routes/alertConfig.routes');
 const blockedNumbersService = require('./services/blockedNumbers.service');
 const analyticsService = require('./services/analyticsService');
 const demandAnalyticsService = require('./services/demandAnalytics.service');
@@ -56,7 +62,11 @@ const io = new Server(server, {
 // Expose io to routes via app.set
 app.set('io', io);
 
-app.use(express.json());
+// Connect Socket.IO to ETL Job Service for real-time progress events
+const etlJobService = require('./services/etlJob.service');
+etlJobService.setIO(io);
+
+app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // API Routes
@@ -73,6 +83,12 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/demand-analytics', demandAnalyticsRoutes);
 app.use('/api/product-catalog', productCatalogRoutes);
+app.use('/api/quick-replies', quickRepliesRoutes);
+app.use('/api/guide-rules', guideRulesRoutes);
+app.use('/api/campaigns', campaignsRoutes);
+app.use('/api/contacts', contactsRoutes);
+app.use('/api/leads', leadsRoutes);
+app.use('/api/alert-config', alertConfigRoutes);
 
 // API Status (Pública)
 app.get('/api/status', (req, res) => {
@@ -122,6 +138,9 @@ const paymentDetection = require('./services/paymentDetection.service');
 const humanResponse = require('./services/humanResponse.service');
 const chatHistoryService = require('./services/chatHistory.service');
 const sentTracker = require('./utils/sentTracker');
+const leadScoringService = require('./services/leadScoring.service');
+const alertNotificationsService = require('./services/alertNotifications.service');
+const campaignsService = require('./services/campaigns.service');
 apiKeyRotation.setIo(io);
 humanResponse.setDependencies(io, chatHistoryService);
 
@@ -142,6 +161,10 @@ whatsapp.on('status-update', (data) => {
     // Keep the key rotation service aware of the current WhatsApp socket
     if (data.status === 'connected' && whatsapp.sock) {
         apiKeyRotation.setSock(whatsapp.sock);
+        // Inject socket into alert notifications service for WhatsApp alerts
+        alertNotificationsService.setSock(whatsapp.sock);
+        // Inject dependencies into campaigns service
+        campaignsService.setDependencies(whatsapp.sock, chatHistoryService, io);
     }
 });
 
@@ -258,7 +281,7 @@ whatsapp.on('message', async (m) => {
             // Mark JID as processing BEFORE the welcome flow starts
             _processingJids.set(remoteJid, Date.now());
             try {
-                welcomeWasSent = await welcomeAutomationService.runIfNeeded(whatsapp.sock, remoteJid, chatHistoryService, io);
+                welcomeWasSent = await welcomeAutomationService.runIfNeeded(whatsapp.sock, remoteJid, chatHistoryService, io, msg.pushName);
             } catch (welcomeErr) {
                 console.error(`⚠️ Welcome automation error: ${welcomeErr.message}`);
             }
@@ -307,6 +330,46 @@ whatsapp.on('message', async (m) => {
                 const savedMsg = await chatHistoryService.addMessage(remoteJid, text || '[media]', false, msg.pushName, 'client');
                 io.emit('chat:message', { jid: remoteJid, message: savedMsg });
             } catch (_) { }
+
+            // ── LEAD SCORING HOOK — detect purchase intent from incoming messages ──
+            if (text && !remoteJid.includes('@g.us')) {
+                try {
+                    const campaignCtx = await campaignsService.getCampaignContextForJid(remoteJid);
+                    const campaignId = campaignCtx?.campaignId || null;
+                    const result = await leadScoringService.analyzeAndScore(
+                        remoteJid, text, msg.pushName, campaignId
+                    );
+                    if (result && result.lead && !result.lead.notified) {
+                        // Fetch campaign name for notification context
+                        let campaignName = campaignCtx?.campaignName || null;
+                        // Send configured alerts (WhatsApp + email)
+                        const wasAlertSent = await alertNotificationsService.notifyLead(result.lead, campaignName).catch((err) => {
+                            console.error('❌ Error sending lead alert:', err.message);
+                            return false;
+                        });
+                        if (wasAlertSent) {
+                            await leadScoringService.markNotified(result.lead.id);
+                        }
+
+                        // Send friendly handoff message to the client
+                        if (result.score === 'caliente' || result.lead.priority) {
+                            if (whatsapp.sock) {
+                                welcomeAutomationService.markBotSent(remoteJid);
+                                await whatsapp.sock.sendMessage(remoteJid, {
+                                    text: 'de acuerdo un momento'
+                                });
+                                try {
+                                    const savedHandoffMsg = await chatHistoryService.addMessage(remoteJid, 'de acuerdo un momento', true, undefined, 'bot');
+                                    io.emit('chat:message', { jid: remoteJid, message: savedHandoffMsg });
+                                } catch (_) { }
+                            }
+                        }
+
+                        io.emit('lead:detected', { lead: result.lead, score: result.score });
+                        console.log(`🎯 Lead [${result.score}] detected and notified: ${remoteJid}`);
+                    }
+                } catch (_) { }
+            }
 
             // === AUDIO MESSAGE HANDLER: transcribe and process with AI ===
             if (isAudioMessage) {

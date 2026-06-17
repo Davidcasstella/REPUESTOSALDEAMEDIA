@@ -31,4 +31,18 @@ router.post('/clear-session', async (req, res) => {
     }
 });
 
+// POST request pairing code
+router.post('/request-pairing-code', async (req, res) => {
+    const { phoneNumber } = req.body;
+    if (!phoneNumber) {
+        return res.status(400).json({ success: false, message: 'El número de teléfono es requerido' });
+    }
+    try {
+        const code = await whatsapp.requestPairingCode(phoneNumber);
+        res.json({ success: true, code });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al solicitar el código de emparejamiento', error: error.message });
+    }
+});
+
 module.exports = router;

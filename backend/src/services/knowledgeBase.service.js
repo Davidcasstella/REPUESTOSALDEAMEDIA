@@ -90,9 +90,10 @@ class KnowledgeBaseService {
      */
     async extractTextFromBuffer(buffer, type) {
         if (type === 'pdf') {
-            const parser = new PDFParse();
-            const data = await parser.parseBuffer(buffer);
-            return data.text;
+            const parser = new PDFParse({ data: buffer });
+            const result = await parser.getText();
+            await parser.destroy();
+            return result.text;
         } else {
             return buffer.toString('utf8');
         }

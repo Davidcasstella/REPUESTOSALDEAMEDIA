@@ -20,6 +20,7 @@ class WhatsApp extends EventEmitter {
         this.saveCreds = null;
         this.status = 'disconnected'; // disconnected, connecting, waiting_qr, connected
         this.qr = null;
+        this.pairingCode = null; // Storing the active pairing code
         this.logger = pino({ level: config.logs.level });
         this.isRestarting = false;
         this.sessionPath = path.join(process.cwd(), 'session', config.whatsapp.sessionPath);
@@ -71,8 +72,11 @@ class WhatsApp extends EventEmitter {
 
             if (qr) {
                 try {
-                    this.qr = await QRCode.toDataURL(qr);
-                    this.updateStatus('waiting_qr');
+                    // Only generate QR if we do not have an active pairing code request
+                    if (!this.pairingCode) {
+                        this.qr = await QRCode.toDataURL(qr);
+                        this.updateStatus('waiting_qr');
+                    }
                 } catch (err) {
                     this.logger.error({ err }, 'Error converting QR to data URL');
                     this.qr = null;
@@ -85,6 +89,7 @@ class WhatsApp extends EventEmitter {
 
                 this.logger.warn(`Conexión cerrada. Status: ${statusCode}. Reconnect: ${shouldReconnect}`);
                 this.qr = null;
+                this.pairingCode = null;
                 this.updateStatus('disconnected');
 
                 if (shouldReconnect && !this.isRestarting) {
@@ -98,6 +103,7 @@ class WhatsApp extends EventEmitter {
             } else if (connection === 'open') {
                 this.updateStatus('connected');
                 this.qr = null;
+                this.pairingCode = null;
                 this.logger.info('WhatsApp conectado correctamente');
             }
         });
@@ -118,8 +124,40 @@ class WhatsApp extends EventEmitter {
         return {
             status: this.status,
             qr: this.qr,
+            pairingCode: this.pairingCode,
             user: this.sock?.user
         };
+    }
+
+    async requestPairingCode(phoneNumber) {
+        if (!this.sock) {
+            throw new Error('WhatsApp engine is not initialized');
+        }
+        if (this.sock.authState.creds.registered) {
+            throw new Error('WhatsApp is already linked');
+        }
+
+        try {
+            // Normalize phone number (digits only)
+            const cleanNumber = phoneNumber.replace(/\D/g, '');
+            this.logger.info(`Requesting pairing code for: ${cleanNumber}`);
+
+            const code = await this.sock.requestPairingCode(cleanNumber);
+
+            // Format code with hyphen (XXXX-XXXX)
+            let formattedCode = code;
+            if (code && code.length === 8 && !code.includes('-')) {
+                formattedCode = `${code.substring(0, 4)}-${code.substring(4)}`;
+            }
+
+            this.pairingCode = formattedCode;
+            this.qr = null; // Disable QR code since pairing code is active
+            this.updateStatus('waiting_qr');
+            return formattedCode;
+        } catch (error) {
+            this.logger.error({ error }, 'Failed to request pairing code');
+            throw error;
+        }
     }
 
     async restart() {
@@ -162,6 +200,7 @@ class WhatsApp extends EventEmitter {
             this.sock = null;
         }
         this.qr = null;
+        this.pairingCode = null;
         this.updateStatus('disconnected');
     }
 }

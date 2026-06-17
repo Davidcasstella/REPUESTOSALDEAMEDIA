@@ -114,13 +114,22 @@ class AIFallbackService {
     }
 
     async getPendingList() {
+        const chatHistoryService = require('./chatHistory.service');
         const data = await this._read();
+        
+        // Load chat history cache to get custom contact names
+        await chatHistoryService._loadCache();
+
         return Object.entries(data.pending)
-            .map(([jid, info]) => ({
-                jid,
-                displayName: jid.replace('@s.whatsapp.net', '').replace('@g.us', ' (grupo)'),
-                ...info
-            }))
+            .map(([jid, info]) => {
+                const chat = chatHistoryService._cache[jid];
+                const displayName = chat?.pushName || jid.replace('@s.whatsapp.net', '').replace('@g.us', ' (grupo)');
+                return {
+                    jid,
+                    displayName,
+                    ...info
+                };
+            })
             .sort((a, b) => {
                 // Unattended first, then by most recent
                 if (a.attended !== b.attended) return a.attended ? 1 : -1;

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MessageSquare, Trash2, Check, CheckCheck, Users, Tag } from 'lucide-react';
+import { Search, MessageSquare, Trash2, Check, CheckCheck, Users, Tag, Edit2, X } from 'lucide-react';
+import api from '../../../services/api';
+import Avatar from '../../../components/ui/Avatar';
 
 /**
  * ConversationList
@@ -25,9 +27,34 @@ const ConversationList = ({
     categories,
     categoryMap,
     onAddToCategory,
-    onRemoveFromCategory
+    onRemoveFromCategory,
+    onRenameContact
 }) => {
     const [confirmDelete, setConfirmDelete] = useState(null);
+
+    // Editing states for contact name
+    const [editingJid, setEditingJid] = useState(null);
+    const [editNameValue, setEditNameValue] = useState('');
+    const [savingJid, setSavingJid] = useState(null);
+
+    const handleSaveName = async (e, jid) => {
+        e.stopPropagation();
+        if (!editNameValue.trim() || savingJid) return;
+        const newName = editNameValue.trim();
+        setSavingJid(jid);
+        try {
+            await api.put(`/api/chat/conversations/${encodeURIComponent(jid)}/name`, { name: newName });
+            if (onRenameContact) {
+                onRenameContact(jid, newName);
+            }
+            setEditingJid(null);
+        } catch (err) {
+            console.error('Error saving name:', err);
+            alert('Error al guardar el nombre');
+        } finally {
+            setSavingJid(null);
+        }
+    };
 
     // ── Context Menu State ──
     const [contextMenu, setContextMenu] = useState(null); // { x, y, jid, isGroup }
@@ -55,16 +82,36 @@ const ConversationList = ({
         if (!isoStr) return '';
         const d = new Date(isoStr);
         const now = new Date();
-        const isToday = d.toDateString() === now.toDateString();
-        if (isToday) {
-            return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        
+        const getColombianDateString = (date) => {
+            return new Intl.DateTimeFormat('es-CO', {
+                timeZone: 'America/Bogota',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(new Date(date));
+        };
+        
+        const dStr = getColombianDateString(d);
+        const nowStr = getColombianDateString(now);
+        const yesterdayStr = getColombianDateString(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+        
+        if (dStr === nowStr) {
+            return d.toLocaleTimeString('es-CO', {
+                timeZone: 'America/Bogota',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
         }
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        if (d.toDateString() === yesterday.toDateString()) {
+        if (dStr === yesterdayStr) {
             return 'Ayer';
         }
-        return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        return d.toLocaleDateString('es-CO', {
+            timeZone: 'America/Bogota',
+            day: '2-digit',
+            month: '2-digit'
+        });
     };
 
     const getInitial = (name) => {
@@ -162,21 +209,92 @@ const ConversationList = ({
                                 onClick={() => onSelect(conv.jid)}
                                 onContextMenu={(e) => handleContextMenu(e, conv)}
                             >
-                                <div
+                                <Avatar
+                                    jid={conv.jid}
+                                    name={conv.pushName}
+                                    isGroup={conv.isGroup}
                                     className="conv-avatar"
-                                    style={{ backgroundColor: getAvatarColor(conv.jid) }}
-                                >
-                                    {conv.isGroup ? <Users size={14} /> : getInitial(conv.pushName)}
-                                </div>
+                                    size={30}
+                                />
                                 <div className="conv-info">
                                     <div className="conv-info-top">
-                                        <span className="conv-name">
-                                            {conv.pushName}
-                                            {conv.isGroup && <span className="conv-group-badge">grupo</span>}
-                                        </span>
-                                        <span className={`conv-time ${conv.unreadCount > 0 ? 'conv-time-unread' : ''}`}>
-                                            {formatTime(conv.lastMessageTime)}
-                                        </span>
+                                        {editingJid === conv.jid ? (
+                                            <div className="conv-name-edit-wrapper" onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%', marginRight: '8px' }}>
+                                                <input
+                                                    type="text"
+                                                    className="conv-name-input"
+                                                    value={editNameValue}
+                                                    onChange={e => setEditNameValue(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') handleSaveName(e, conv.jid);
+                                                        if (e.key === 'Escape') setEditingJid(null);
+                                                    }}
+                                                    style={{
+                                                        background: '#fff',
+                                                        border: '1px solid #cbd5e0',
+                                                        borderRadius: '4px',
+                                                        color: '#1a202c',
+                                                        padding: '1px 4px',
+                                                        fontSize: '0.75rem',
+                                                        outline: 'none',
+                                                        flex: 1,
+                                                        minWidth: '50px'
+                                                    }}
+                                                    disabled={savingJid === conv.jid}
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={(e) => handleSaveName(e, conv.jid)}
+                                                    style={{ background: 'none', border: 'none', color: '#00aa55', cursor: 'pointer', padding: '1px', display: 'flex', alignItems: 'center' }}
+                                                    disabled={savingJid === conv.jid}
+                                                >
+                                                    <Check size={12} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setEditingJid(null); }}
+                                                    style={{ background: 'none', border: 'none', color: '#ff3333', cursor: 'pointer', padding: '1px', display: 'flex', alignItems: 'center' }}
+                                                    disabled={savingJid === conv.jid}
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span
+                                                    className="conv-name"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditNameValue(conv.pushName);
+                                                        setEditingJid(conv.jid);
+                                                    }}
+                                                    onDoubleClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditNameValue(conv.pushName);
+                                                        setEditingJid(conv.jid);
+                                                    }}
+                                                    title="Clic para editar"
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', flex: 1, minWidth: 0 }}
+                                                >
+                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.pushName}</span>
+                                                    {conv.isGroup && <span className="conv-group-badge">grupo</span>}
+                                                    <span
+                                                        className="conv-edit-icon-hover"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditNameValue(conv.pushName);
+                                                            setEditingJid(conv.jid);
+                                                        }}
+                                                        style={{ cursor: 'pointer' }}
+                                                        title="Editar nombre"
+                                                    >
+                                                        <Edit2 size={10} />
+                                                    </span>
+                                                </span>
+                                                <span className={`conv-time ${conv.unreadCount > 0 ? 'conv-time-unread' : ''}`}>
+                                                    {formatTime(conv.lastMessageTime)}
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                     <div className="conv-info-bottom">
                                         <span className="conv-last-msg">

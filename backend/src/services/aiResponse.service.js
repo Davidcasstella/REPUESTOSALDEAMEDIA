@@ -7,6 +7,25 @@ const chatHistoryService = require('./chatHistory.service');
 
 class AIResponseService {
     /**
+     * Retrieves campaign context for the JID and builds a prompt string.
+     * @param {string} jid
+     * @returns {Promise<string>}
+     */
+    async generateContextWithCampaign(jid) {
+        if (!jid) return '';
+        try {
+            const campaignsService = require('./campaigns.service');
+            const campaignCtx = await campaignsService.getCampaignContextForJid(jid);
+            if (campaignCtx) {
+                return `El usuario recibió la campaña de marketing: "${campaignCtx.campaignName}". El mensaje enviado fue: "${campaignCtx.message}".${campaignCtx.product ? ` Producto/repuesto promocionado: "${campaignCtx.product}".` : ''} Ten en cuenta esto al responder si el usuario hace referencia a dicha campaña o producto.`;
+            }
+        } catch (err) {
+            console.warn('⚠️ Error al obtener contexto de campaña para IA:', err.message);
+        }
+        return '';
+    }
+
+    /**
      * Generates a response using the active AI provider.
      * If knowledge base has relevant context, uses RAG to constrain the response.
      * @param {string} prompt - The user message.
@@ -71,6 +90,41 @@ class AIResponseService {
             return 'FALLBACK_TRIGGER';
         }
 
+        let guideRulesText = '';
+        try {
+            const guideRulesService = require('./guideRules.service');
+            const allRules = await guideRulesService.getAll();
+            const activeRules = allRules.filter(r => r.isActive);
+            if (activeRules.length > 0) {
+                guideRulesText = activeRules.map((r, index) => `- **${r.name}** (Categoría: ${r.category}): ${r.content}`).join('\n');
+            }
+        } catch (ruleErr) {
+            console.warn('⚠️ Error loading guide rules for system prompt:', ruleErr.message);
+        }
+
+               const campaignContextText = await this.generateContextWithCampaign(jid);
+
+        let leadContextText = '';
+        if (jid) {
+            try {
+                const leadScoringService = require('./leadScoring.service');
+                const lead = await leadScoringService.getLeadByJid(jid);
+                if (lead) {
+                    leadContextText = `INFORMACIÓN ACUMULADA DEL CLIENTE EN EL CRM (Úsala para continuar el contexto de forma natural y no volver a preguntar lo que ya sabemos):
+- Producto de interés: ${lead.interestProduct || 'No identificado aún'}
+- Industria: ${lead.industry || 'No especificada'}
+- Cantidad requerida: ${lead.quantity || 'No especificada'}
+- Medidas: ${lead.dimensions || 'No especificadas'}
+- Ubicación: ${lead.location || 'No especificada'}
+- Empresa: ${lead.company || 'No especificada'}
+- Nivel de urgencia: ${lead.urgency || 'Normal'}
+- Score de temperatura: ${lead.score || 'frio'}`;
+                }
+            } catch (leadErr) {
+                console.warn('⚠️ Error al obtener datos del lead para el prompt:', leadErr.message);
+            }
+        }
+
         console.log('📚 RAG context found, applying sales-oriented prompt...');
         let systemPrompt = `ERES UN ASESOR PROFESIONAL DE REPUESTOS por WhatsApp. Respondes como un humano real colombiano.
 
@@ -80,13 +134,30 @@ PERSONALIDAD:
 - NUNCA dices "no se" ni "no tengo informacion" ni nada negativo.
 - NUNCA mencionas que eres una IA ni que tienes un "contexto".
 
+${leadContextText ? `INFORMACIÓN DEL CRM ACUMULADA:
+${leadContextText}
+
+REGLAS DE USO DE INFORMACIÓN DEL CRM:
+- Usa estos datos ÚNICAMENTE para evitar volver a preguntar lo que ya sabemos (por ejemplo, si ya tenemos su empresa o ubicación, no le preguntes cuál es).
+- NUNCA fuerces ni menciones los nombres de su empresa (ej. Colminas) o ubicación (ej. Boyacá) en respuestas informativas generales o saludos, ya que suena robótico y fuera de contexto.
+- Solo menciónalos de manera natural cuando sea indispensable (por ejemplo, al acordar el envío, despachar el pedido o confirmar datos de facturación).
+` : ''}
+
+${campaignContextText ? `CONTEXTO DE CAMPAÑA MARKETING ENVIADA AL CLIENTE:
+${campaignContextText}
+` : ''}
+
+${guideRulesText ? `REGLAS DE GUÍA DADAS POR EL ADMINISTRADOR (CÚMPLELES ESTRICTAMENTE):
+${guideRulesText}
+` : ''}
+
 REGLAS CRITICAS DE FORMATO (LONGITUD):
 - Cada parte del mensaje debe ser CORTA. MAXIMO 25 palabras por parte. Si necesitas decir mas usa el separador ||| para crear otro mensaje.
 - Si vas a hacer una pregunta NUNCA uses el simbolo ¿ (apertura). Solo usa ? al final. DE LO CONTRARIO NO PONGAS SIGNOS DE INTERROGACION.
 - NUNCA uses comas ni puntos finales. Evita textos largos y aburridos.
 - No uses emojis.
 - NUNCA hagas saltos de linea dentro de una parte. Escribe TODO seguido en una sola linea.
-- PROHIBIDO usar enters o \\n dentro de cada parte.
+- PROHIBIDO usar enters o \n dentro de cada parte.
 - ROMPE CUALQUIER EXPLICACION LARGA usando |||. Ejemplo: sumercé con gusto le ayudo ||| tenemos ese repuesto disponible ||| dême el modelo del carro y le busco
 
 REGLA ESPECIAL: CLIENTE NO HA ENCONTRADO SU REPUESTO:
@@ -462,6 +533,125 @@ ${userMessage}`;
             return finalResponse.substring(0, 247).trim() + '...';
         }
         return finalResponse;
+    }
+
+    /**
+     * Analyzes an incoming message and conversation history to extract structured lead information.
+     * @param {string} userMessage
+     * @param {string|null} jid
+     * @returns {Promise<Object|null>}
+     */
+    async analyzeLead(userMessage, jid = null) {
+        const activeProvider = await aiProvidersService.getActiveProvider();
+        if (!activeProvider) {
+            console.warn('⚠️ No active AI provider for lead analysis.');
+            return null;
+        }
+
+        const systemPrompt = `Eres un extractor de información de leads comerciales altamente preciso para una empresa de repuestos industriales y mineros (Cribado, Fundición, Transporte, Rodamientos y Consumibles).
+Analizas el mensaje actual del cliente y el historial de conversación para extraer información clave.
+
+CATÁLOGO DE PRODUCTOS DE LA EMPRESA:
+- CRIBADO: Mallas Anticolmatantes, Láminas Perforadas, Mallas Trenzadas, Pisamallas, Mordazas
+- FUNDICIÓN: Conos para Trituradoras, Revestimientos para Chancadoras, Placas de Desgaste, Martillos y Piezas de Desgaste, Barras de Impacto, Barras de Desgaste, Cajas y Carcasas
+- TRANSPORTE: Estaciones, Alineación, Vulcanizado en campo, Bandas Transportadoras
+- RODAMIENTOS Y CONSUMIBLES: Lubricantes Industriales (Royal), Rodamientos Esféricos, Rodamientos de Rodillos (SXM), Compuestos Industriales (Loctite), Cadenas y Engranes
+
+Tu objetivo es responder ÚNICAMENTE con un objeto JSON válido (sin markdown, sin bloques de código, solo el texto JSON) con las siguientes propiedades:
+- "interestProduct": string o null (Debe ser el producto o categoría del catálogo anterior que más se relacione con lo mencionado por el cliente, ej: "Bandas Transportadoras", "Mallas Anticolmatantes", etc. Si no se menciona ningún producto del catálogo ni palabras relacionadas, usa null).
+- "industry": string o null (Minería, alimentos, cementera, siderúrgica, industria general, etc.)
+- "quantity": string o null (Cantidad solicitada por el cliente, ej: "5 unidades", "10 metros", etc.)
+- "dimensions": string o null (Medidas o especificaciones del repuesto, ej: "4x4", "3/4 pulgadas", etc.)
+- "location": string o null (Ubicación, ciudad, departamento o país)
+- "company": string o null (Nombre de la empresa del cliente)
+- "urgency": "bajo" | "medio" | "alto"
+- "commercialIntents": array de strings. Los posibles valores son:
+  - "precio" (si pregunta precio, costo, cuánto vale, etc.)
+  - "cotizacion" (si pide cotizar, cotización, proforma, etc.)
+  - "interes_compra" (si muestra interés claro en adquirirlo)
+  - "tecnico" (si tiene consultas técnicas o especificaciones)
+  - "contacto_humano" (si solicita hablar con un asesor, vendedor, humano o agente)
+  - "urgente" (si muestra urgencia o tiempo de entrega inmediato)
+- "score": "frio" | "tibio" | "caliente" (Regla estricta: si el array "commercialIntents" contiene "precio", "cotizacion", "contacto_humano", "urgente" o pregunta por disponibilidad, tiempo de entrega o formas de pago, el score DEBE ser "caliente". Si muestra interés o pide información general de productos, es "tibio". De lo contrario, "frio").
+- "priority": boolean (true si el score es "caliente" o si "commercialIntents" contiene "contacto_humano", de lo contrario false).
+- "humanEscalation": boolean (true si se requiere transferir a un humano de inmediato, es decir, si el score es "caliente" o solicita contacto humano).
+
+Asegúrate de que la salida sea estrictamente un JSON válido, sin comentarios, sin formato markdown, sin envolver en \`\`\`json ... \`\`\`. Solo el texto plano del objeto JSON.`;
+
+        let conversationHistory = [];
+        if (jid) {
+            try {
+                const conversation = await chatHistoryService.getMessages(jid);
+                if (conversation.messages && conversation.messages.length > 0) {
+                    const recentMessages = conversation.messages.slice(-11, -1);
+                    conversationHistory = recentMessages.map(m => ({
+                        role: m.fromMe ? 'assistant' : 'user',
+                        content: m.text || '[media]'
+                    }));
+                }
+            } catch (histErr) {
+                console.warn('⚠️ Could not load history for lead analysis:', histErr.message);
+            }
+        }
+
+        const { name, apiKey } = activeProvider;
+        const providerName = name.toLowerCase();
+
+        try {
+            const isGroq = apiKey.startsWith('gsk_') || (providerName.includes('groq') || providerName.includes('grog'));
+            const isOpenAI = !isGroq && (apiKey.startsWith('sk-') || providerName.includes('openai'));
+            const isGemini = !isGroq && !isOpenAI && (apiKey.startsWith('AIza') || providerName.includes('gemini'));
+            const isGrok = !isGroq && !isOpenAI && !isGemini && providerName.includes('grok');
+
+            let resultRaw = '';
+
+            if (isGroq) {
+                resultRaw = await apiKeyRotation.callWithRotation(
+                    'groq',
+                    (key, sys, usr) => this.callGroq(key, sys, usr, conversationHistory),
+                    systemPrompt,
+                    userMessage,
+                    apiKey
+                );
+            } else if (isOpenAI) {
+                resultRaw = await apiKeyRotation.callWithRotation(
+                    'openai',
+                    (key, sys, usr) => this.callOpenAI(key, sys, usr, conversationHistory),
+                    systemPrompt,
+                    userMessage,
+                    apiKey
+                );
+            } else if (isGrok) {
+                resultRaw = await apiKeyRotation.callWithRotation(
+                    'grok',
+                    (key, sys, usr) => this.callGrok(key, sys, usr, conversationHistory),
+                    systemPrompt,
+                    userMessage,
+                    apiKey
+                );
+            } else if (isGemini) {
+                resultRaw = await apiKeyRotation.callWithRotation(
+                    'gemini',
+                    (key, sys, usr) => this.callGemini(key, sys, usr, conversationHistory),
+                    systemPrompt,
+                    userMessage,
+                    apiKey
+                );
+            } else {
+                return null;
+            }
+
+            let cleaned = resultRaw.trim();
+            if (cleaned.startsWith('```')) {
+                cleaned = cleaned.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+            }
+
+            const parsed = JSON.parse(cleaned);
+            return parsed;
+        } catch (err) {
+            console.error('❌ Error analyzing lead with active AI provider:', err.message);
+            return null;
+        }
     }
 }
 

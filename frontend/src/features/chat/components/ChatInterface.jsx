@@ -23,6 +23,7 @@ const ChatInterface = () => {
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [whatsappStatus, setWhatsappStatus] = useState('connected');
 
     // ── Filter & category state ──
     const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'groups' | 'category:repuestos' | ...
@@ -35,12 +36,22 @@ const ChatInterface = () => {
         activeJidRef.current = activeJid;
     }, [activeJid]);
 
+    const fetchWhatsappStatus = async () => {
+        try {
+            const { data } = await api.get('/api/whatsapp/status');
+            if (data.status) setWhatsappStatus(data.status);
+        } catch (error) {
+            console.error('Error fetching WhatsApp status:', error);
+        }
+    };
+
     // Load conversations + categories on mount, sync groups from WhatsApp
     useEffect(() => {
         const init = async () => {
             await syncGroups(); // Fetch all groups from WhatsApp first
             await loadConversations(); // Then load conversations (now includes groups)
             await loadCategories();
+            await fetchWhatsappStatus(); // Fetch WhatsApp status
         };
         init();
     }, []);
@@ -94,8 +105,28 @@ const ChatInterface = () => {
             }
         };
 
+        const handleNameUpdate = ({ jid, pushName }) => {
+            setConversations(prev => prev.map(c => c.jid === jid ? { ...c, pushName } : c));
+        };
+
+        const handleWhatsappStatus = (data) => {
+            if (data.status) setWhatsappStatus(data.status);
+        };
+
+        const handleWhatsappUpdate = (data) => {
+            if (data.status) setWhatsappStatus(data.status);
+        };
+
         socket.on('chat:message', handleNewMessage);
-        return () => socket.off('chat:message', handleNewMessage);
+        socket.on('chat:name-update', handleNameUpdate);
+        socket.on('whatsapp-status', handleWhatsappStatus);
+        socket.on('whatsapp-update', handleWhatsappUpdate);
+        return () => {
+            socket.off('chat:message', handleNewMessage);
+            socket.off('chat:name-update', handleNameUpdate);
+            socket.off('whatsapp-status', handleWhatsappStatus);
+            socket.off('whatsapp-update', handleWhatsappUpdate);
+        };
     }, []); // Empty deps: listener is stable, uses refs
 
     const syncGroups = async () => {
@@ -157,6 +188,10 @@ const ChatInterface = () => {
     }, [activeJid]);
 
     const goBack = () => setActiveJid(null);
+
+    const handleRenameContact = useCallback((jid, newName) => {
+        setConversations(prev => prev.map(c => c.jid === jid ? { ...c, pushName: newName } : c));
+    }, []);
 
     const handleDeleteConversation = async (jid) => {
         try {
@@ -255,6 +290,7 @@ const ChatInterface = () => {
                     categoryMap={categoryMap}
                     onAddToCategory={handleAddToCategory}
                     onRemoveFromCategory={handleRemoveFromCategory}
+                    onRenameContact={handleRenameContact}
                 />
             </div>
             <div className="chat-main">
@@ -266,6 +302,8 @@ const ChatInterface = () => {
                         loading={loading}
                         onSend={sendMessage}
                         onBack={goBack}
+                        onRenameContact={handleRenameContact}
+                        whatsappStatus={whatsappStatus}
                     />
                 ) : (
                     <div className="chat-empty-state">

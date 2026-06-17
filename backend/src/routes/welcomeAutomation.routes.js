@@ -70,14 +70,15 @@ router.get('/config', async (req, res) => {
 // ── PUT /api/welcome-automation/config ─────────────────────────────────────
 router.put('/config', async (req, res) => {
     try {
-        const { isEnabled, messageText, cooldownHours, videoEnabled } = req.body;
+        const { isEnabled, messageText, cooldownHours, videoEnabled, greetMode } = req.body;
         const updated = await welcomeService.saveConfig({
             ...(isEnabled !== undefined && { isEnabled: Boolean(isEnabled) }),
             ...(messageText !== undefined && { messageText: String(messageText) }),
             ...(cooldownHours !== undefined && { cooldownHours: Number(cooldownHours) }),
-            ...(videoEnabled !== undefined && { videoEnabled: Boolean(videoEnabled) })
+            ...(videoEnabled !== undefined && { videoEnabled: Boolean(videoEnabled) }),
+            ...(greetMode !== undefined && { greetMode: String(greetMode) })
         });
-        console.log(`⚙️ Welcome config updated: enabled=${updated.isEnabled}, cooldown=${updated.cooldownHours}h`);
+        console.log(`⚙️ Welcome config updated: enabled=${updated.isEnabled}, cooldown=${updated.cooldownHours}h, greetMode=${updated.greetMode}`);
         res.json({ success: true, data: updated });
     } catch (error) {
         console.error('Error updating welcome config:', error.message);

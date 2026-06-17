@@ -1,10 +1,11 @@
+// Force reload to pick up new .env changes v3
 const { server } = require('./app');
 const whatsapp = require('./core/WhatsApp');
 const config = require('./config');
 
 async function start() {
     try {
-        console.log('🚀 Iniciando Chat WiFi...');
+        console.log('🚀 Iniciando Chat Repuestos...');
 
         // 1. Iniciar Motor de WhatsApp
         await whatsapp.init();

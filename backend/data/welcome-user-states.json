@@ -1,10 +1,9 @@
 {
   "573028599105@s.whatsapp.net": {
-    "lastMessageText": "la 1",
-    "lastMessageAt": "2026-04-22T07:26:26.024Z",
-    "aiEnabled": true,
-    "cooldownEnabled": true,
-    "lastWelcomeSentAt": "2026-04-22T07:16:08.174Z"
+    "lastMessageText": "1 quiero comprar ese",
+    "lastMessageAt": "2026-06-15T06:57:38.248Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
   },
   "151771427143897@lid": {
     "lastMessageText": "Que es la vida ?",
@@ -126,6 +125,24 @@
     "lastMessageText": "Esto",
     "lastMessageAt": "2026-04-18T03:00:47.327Z",
     "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "573223955854@s.whatsapp.net": {
+    "lastMessageText": "[unrecognized message]",
+    "lastMessageAt": "2026-06-09T04:45:19.130Z",
+    "aiEnabled": true,
+    "cooldownEnabled": true
+  },
+  "62372169421046@lid": {
+    "lastMessageText": "[audio]",
+    "lastMessageAt": "2026-06-16T20:26:40.505Z",
+    "aiEnabled": false,
+    "cooldownEnabled": true
+  },
+  "109049672638576@lid": {
+    "lastMessageText": "Mallas trenzadas",
+    "lastMessageAt": "2026-06-16T20:25:12.494Z",
+    "aiEnabled": true,
     "cooldownEnabled": true
   }
 }

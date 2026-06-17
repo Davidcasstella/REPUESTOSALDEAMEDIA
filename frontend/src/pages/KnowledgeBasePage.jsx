@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Upload, FileText, Search, Plus, Trash2, RefreshCw,
     Download, X, AlertCircle, CheckCircle, Clock, Loader,
-    BookOpen, Calendar, ChevronRight, Pencil, Eye, EyeOff, Check, ClipboardList
+    BookOpen, Calendar, ChevronRight, Pencil, Eye, EyeOff, Check, ClipboardList, DollarSign
 } from 'lucide-react';
 import useKnowledgeStore from '../features/knowledge-base/store/useKnowledgeStore';
 import useStagesStore from '../features/knowledge-base/store/useStagesStore';
 import api from '../services/api';
+import socket from '../services/socket';
 
 const KnowledgeBasePage = () => {
     // ── Stores ──────────────────────────────────────────────
@@ -39,6 +40,7 @@ const KnowledgeBasePage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResult, setSearchResult] = useState('');
     const [searching, setSearching] = useState(false);
+    const [priceBreakdown, setPriceBreakdown] = useState(null);
 
     // Stage create
     const [showNewStage, setShowNewStage] = useState(false);
@@ -52,10 +54,14 @@ const KnowledgeBasePage = () => {
 
     const fileInputRef = useRef(null);
 
-    // Catalog processing state
+    // Catalog ETL processing state
     const catalogInputRef = useRef(null);
     const [catalogUploading, setCatalogUploading] = useState(false);
-    const [catalogResult, setCatalogResult] = useState(null);
+    const [catalogParserType, setCatalogParserType] = useState('bdc');
+    const [etlJob, setEtlJob] = useState(null); // { jobId, phase, progress, message, ... }
+    const [etlCompleted, setEtlCompleted] = useState(null); // completed stats
+    const [etlError, setEtlError] = useState(null);
+    const [etlStartTime, setEtlStartTime] = useState(null);
 
     // ── Fetch data ──────────────────────────────────────────
     useEffect(() => { fetchStages(); }, []);
@@ -79,6 +85,36 @@ const KnowledgeBasePage = () => {
             if (data.success) setManualEntries(data.entries || []);
         } catch {}
     };
+
+    // ── Socket.IO listeners for ETL progress ────────────────
+    useEffect(() => {
+        const onProgress = (data) => {
+            setEtlJob(prev => ({
+                ...prev,
+                ...data,
+            }));
+        };
+        const onCompleted = (data) => {
+            setEtlJob(null);
+            setEtlCompleted(data);
+            setCatalogUploading(false);
+        };
+        const onError = (data) => {
+            setEtlJob(null);
+            setEtlError(data.error || data.message);
+            setCatalogUploading(false);
+        };
+
+        socket.on('etl-job-progress', onProgress);
+        socket.on('etl-job-completed', onCompleted);
+        socket.on('etl-job-error', onError);
+
+        return () => {
+            socket.off('etl-job-progress', onProgress);
+            socket.off('etl-job-completed', onCompleted);
+            socket.off('etl-job-error', onError);
+        };
+    }, []);
 
     // ── Stage handlers ──────────────────────────────────────
     const handleCreateStage = async () => {
@@ -138,7 +174,6 @@ const KnowledgeBasePage = () => {
         await uploadDocument(file, activeStageId);
     };
 
-    // ── Catalog processing ────────────────────────────────────
     const handleCatalogSelect = (e) => {
         const file = e.target.files[0];
         if (file) handleCatalogUpload(file);
@@ -151,23 +186,41 @@ const KnowledgeBasePage = () => {
             return;
         }
         setCatalogUploading(true);
-        setCatalogResult(null);
+        setEtlCompleted(null);
+        setEtlError(null);
+        setEtlStartTime(Date.now());
+        setEtlJob({ phase: 'uploading', progress: 0, message: 'Subiendo archivo...' });
+
         try {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('parserType', catalogParserType);
             const { data } = await api.post('/api/product-catalog/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
-                timeout: 120000,
+                timeout: 300000, // 5 min for upload only
             });
-            if (data.success) {
-                setCatalogResult(data.data);
+            if (data.success && data.jobId) {
+                setEtlJob({ jobId: data.jobId, phase: 'queued', progress: 2, message: 'Archivo recibido. Procesamiento iniciado...' });
             } else {
-                alert(data.message || 'Error al procesar catálogo');
+                setEtlError(data.message || 'Error al enviar catálogo');
+                setCatalogUploading(false);
+                setEtlJob(null);
             }
         } catch (err) {
-            alert(err.response?.data?.message || 'Error al procesar catálogo');
+            setEtlError(err.response?.data?.message || 'Error al enviar catálogo');
+            setCatalogUploading(false);
+            setEtlJob(null);
         }
-        setCatalogUploading(false);
+    };
+
+    // Format elapsed time
+    const formatElapsed = (startTime) => {
+        if (!startTime) return '0s';
+        const seconds = Math.floor((Date.now() - startTime) / 1000);
+        if (seconds < 60) return `${seconds}s`;
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        return `${min}m ${sec}s`;
     };
 
     // ── Manual knowledge ────────────────────────────────────
@@ -217,12 +270,21 @@ const KnowledgeBasePage = () => {
     const handleSearch = async (e) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
-        setSearching(true); setSearchResult('');
+        setSearching(true); setSearchResult(''); setPriceBreakdown(null);
         try {
             const { data } = await api.post('/api/knowledge-base/search', { query: searchQuery });
             setSearchResult(data.context || 'Sin resultados');
+            if (data.priceBreakdown) {
+                setPriceBreakdown(data.priceBreakdown);
+            }
         } catch { setSearchResult('Error en la búsqueda'); }
         setSearching(false);
+    };
+
+    // ── Format Colombian pesos ──────────────────────────────
+    const formatCOP = (num) => {
+        if (num == null) return '$0';
+        return '$' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     };
 
     // ── Status badge ────────────────────────────────────────
@@ -277,6 +339,49 @@ const KnowledgeBasePage = () => {
                         <div className="kb-search-result-preview">
                             <span className="kb-search-result-label">Respuesta del chatbot:</span>
                             <p>{searchResult}</p>
+                        </div>
+                    )}
+                    {priceBreakdown && (
+                        <div className="kb-price-breakdown">
+                            <div className="kb-price-breakdown-header">
+                                <DollarSign size={16} />
+                                <span>DESGLOSE DE PRECIO</span>
+                            </div>
+                            {priceBreakdown.codigo && (
+                                <div className="kb-price-breakdown-product">
+                                    <span className="kb-price-breakdown-code">{priceBreakdown.codigo}</span>
+                                    {priceBreakdown.descripcion && <span className="kb-price-breakdown-desc">{priceBreakdown.descripcion}</span>}
+                                    {priceBreakdown.marca && <span className="kb-price-breakdown-brand">{priceBreakdown.marca}</span>}
+                                </div>
+                            )}
+                            <div className="kb-price-breakdown-rows">
+                                <div className="kb-price-breakdown-row">
+                                    <span>Precio Base</span>
+                                    <span>{formatCOP(priceBreakdown.precio_base)}</span>
+                                </div>
+                                <div className="kb-price-breakdown-row">
+                                    <span>Margen {priceBreakdown.config?.margin_percent || 30}%</span>
+                                    <span>{formatCOP(priceBreakdown.margen)}</span>
+                                </div>
+                                <div className="kb-price-breakdown-row">
+                                    <span>Gastos IA {priceBreakdown.config?.chatbot_percent || 5}%</span>
+                                    <span>{formatCOP(priceBreakdown.gastos_chatbot)}</span>
+                                </div>
+                                <div className="kb-price-breakdown-divider"></div>
+                                <div className="kb-price-breakdown-row kb-price-subtotal">
+                                    <span>Subtotal</span>
+                                    <span>{formatCOP(priceBreakdown.subtotal)}</span>
+                                </div>
+                                <div className="kb-price-breakdown-row">
+                                    <span>IVA {priceBreakdown.config?.iva_percent || 19}%</span>
+                                    <span>{formatCOP(priceBreakdown.iva)}</span>
+                                </div>
+                                <div className="kb-price-breakdown-divider kb-price-divider-total"></div>
+                                <div className="kb-price-breakdown-row kb-price-total">
+                                    <span>TOTAL FINAL</span>
+                                    <span>{formatCOP(priceBreakdown.precio_final)}</span>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -441,40 +546,100 @@ const KnowledgeBasePage = () => {
                                 style={{ backgroundColor: '#16a34a' }}
                                 onClick={() => catalogInputRef.current?.click()}
                                 disabled={catalogUploading}
-                                title="Procesar un PDF de catálogo de precios (ej: Toyota BDC)"
+                                title="Procesar un PDF de catálogo de precios"
                             >
                                 {catalogUploading ? <Loader size={13} className="spin" /> : <ClipboardList size={13} />}
                                 {catalogUploading ? 'Procesando...' : '📋 Procesar Catálogo'}
                             </button>
+                            {/* Parser type selector */}
+                            <select
+                                className="etl-parser-select"
+                                value={catalogParserType}
+                                onChange={(e) => setCatalogParserType(e.target.value)}
+                                title="Formato del catálogo"
+                            >
+                                <option value="bdc">BDC / Toyota</option>
+                                <option value="generic">Genérico (tablas)</option>
+                            </select>
                         </div>
                     </div>
 
 
 
-                    {/* ── Catalog processing result ── */}
-                    {catalogResult && (
+                    {/* ── ETL Progress Panel ── */}
+                    {etlJob && (
+                        <div className="etl-progress-panel">
+                            <div className="etl-progress-header">
+                                <Loader size={16} className="spin" style={{ color: '#3b82f6' }} />
+                                <span className="etl-phase-badge">{etlJob.phase === 'extracting' ? '📄 Extracción' : etlJob.phase === 'transforming' ? '🔧 Normalización' : etlJob.phase === 'loading' ? '💾 Carga' : etlJob.phase === 'counting' ? '📊 Contando' : '⏳ En cola'}</span>
+                            </div>
+                            <div className="etl-progress-bar-container">
+                                <div className="etl-progress-bar" style={{ width: `${etlJob.progress || 0}%` }} />
+                            </div>
+                            <div className="etl-progress-stats">
+                                {etlJob.currentPage > 0 && etlJob.totalPages > 0 && (
+                                    <span>Páginas: {etlJob.currentPage} / {etlJob.totalPages}</span>
+                                )}
+                                {etlJob.productsFound > 0 && (
+                                    <span>Productos: {etlJob.productsFound.toLocaleString()}</span>
+                                )}
+                                <span>Tiempo: {formatElapsed(etlStartTime)}</span>
+                            </div>
+                            {etlJob.message && <div className="etl-progress-message">{etlJob.message}</div>}
+                        </div>
+                    )}
+
+                    {/* ── ETL Completed Summary ── */}
+                    {etlCompleted && (
+                        <div className="etl-summary-panel">
+                            <div className="etl-summary-header">
+                                <CheckCircle size={18} style={{ color: '#16a34a' }} />
+                                <strong>Catálogo procesado exitosamente</strong>
+                                <button onClick={() => setEtlCompleted(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto', padding: '2px' }}>
+                                    <X size={14} />
+                                </button>
+                            </div>
+                            <div className="etl-stats-grid">
+                                {etlCompleted.stats?.totalPages > 0 && (
+                                    <div className="etl-stat-item">
+                                        <span className="etl-stat-label">Páginas</span>
+                                        <span className="etl-stat-value">{etlCompleted.stats.totalPages}</span>
+                                    </div>
+                                )}
+                                <div className="etl-stat-item">
+                                    <span className="etl-stat-label">Productos encontrados</span>
+                                    <span className="etl-stat-value">{(etlCompleted.stats?.productsFound || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="etl-stat-item">
+                                    <span className="etl-stat-label">Guardados</span>
+                                    <span className="etl-stat-value" style={{ color: '#16a34a' }}>{(etlCompleted.stats?.productsProcessed || 0).toLocaleString()}</span>
+                                </div>
+                                {(etlCompleted.stats?.errors || 0) > 0 && (
+                                    <div className="etl-stat-item">
+                                        <span className="etl-stat-label">Errores</span>
+                                        <span className="etl-stat-value" style={{ color: '#ef4444' }}>{etlCompleted.stats.errors}</span>
+                                    </div>
+                                )}
+                                <div className="etl-stat-item">
+                                    <span className="etl-stat-label">Tiempo total</span>
+                                    <span className="etl-stat-value">{formatElapsed(etlStartTime)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── ETL Error ── */}
+                    {etlError && (
                         <div style={{
-                            padding: '0.75rem 1rem',
-                            marginBottom: '0.75rem',
-                            borderRadius: '8px',
-                            backgroundColor: '#f0fdf4',
-                            border: '1px solid #bbf7d0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            fontSize: '0.85rem'
+                            padding: '0.75rem 1rem', marginBottom: '0.75rem', borderRadius: '8px',
+                            backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.85rem'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <CheckCircle size={16} style={{ color: '#16a34a' }} />
-                                <span>
-                                    <strong>{catalogResult.fileName}</strong>: {catalogResult.totalExtracted} productos extraídos
-                                    ({catalogResult.inserted} nuevos, {catalogResult.updated} actualizados)
-                                </span>
+                                <AlertCircle size={16} style={{ color: '#ef4444' }} />
+                                <span>Error: {etlError}</span>
                             </div>
-                            <button
-                                onClick={() => setCatalogResult(null)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
-                            >
+                            <button onClick={() => setEtlError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
                                 <X size={14} />
                             </button>
                         </div>
@@ -484,7 +649,7 @@ const KnowledgeBasePage = () => {
                     {unifiedEntries.length > 0 ? (
                         <div className="kb-entries-list-compact">
                             {unifiedEntries.map((entry, idx) => (
-                                <div key={entry.id || idx} className="kb-entry-row">
+                                <div key={`${entry._itemType}-${entry.id || idx}`} className="kb-entry-row">
                                     <span className="kb-type-badge">
                                         {entry._itemType === 'document' ? entry.type?.toUpperCase() : 'TEXTO'}
                                     </span>

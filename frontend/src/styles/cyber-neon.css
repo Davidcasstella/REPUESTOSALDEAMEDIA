@@ -390,12 +390,60 @@ body {
     border-color: rgba(26, 26, 26, 0.25) !important;
 }
 
-/* Salir = Dim Red */
+/* Reglas de Guía = Steel Blue */
+.sidebar-nav .nav-item:nth-child(7) {
+    border-left: 3px solid rgba(26, 26, 26, 0.35) !important;
+}
+
+.sidebar-nav .nav-item:nth-child(7)::before {
+    background: #1a1a1a;
+    box-shadow: 0 0 10px #1a1a1a;
+}
+
+.sidebar-nav .nav-item:nth-child(7):hover {
+    background: rgba(26, 26, 26, 0.08) !important;
+    color: #1a1a1a !important;
+    border-color: rgba(26, 26, 26, 0.25) !important;
+}
+
+/* Métricas = Blue-gray */
 .sidebar-nav .nav-item:nth-child(8) {
-    border-left: 3px solid rgba(26, 26, 26, 0.20) !important;
+    border-left: 3px solid rgba(26, 26, 26, 0.35) !important;
+}
+
+.sidebar-nav .nav-item:nth-child(8)::before {
+    background: #1a1a1a;
+    box-shadow: 0 0 10px #1a1a1a;
 }
 
 .sidebar-nav .nav-item:nth-child(8):hover {
+    background: rgba(26, 26, 26, 0.08) !important;
+    color: #1a1a1a !important;
+    border-color: rgba(26, 26, 26, 0.25) !important;
+}
+
+/* Respuestas Rápidas = Blue-gray */
+.sidebar-nav .nav-item:nth-child(9) {
+    border-left: 3px solid rgba(26, 26, 26, 0.35) !important;
+}
+
+.sidebar-nav .nav-item:nth-child(9)::before {
+    background: #1a1a1a;
+    box-shadow: 0 0 10px #1a1a1a;
+}
+
+.sidebar-nav .nav-item:nth-child(9):hover {
+    background: rgba(26, 26, 26, 0.08) !important;
+    color: #1a1a1a !important;
+    border-color: rgba(26, 26, 26, 0.25) !important;
+}
+
+/* Salir = Dim Red */
+.sidebar-nav .nav-item:nth-child(10) {
+    border-left: 3px solid rgba(26, 26, 26, 0.20) !important;
+}
+
+.sidebar-nav .nav-item:nth-child(10):hover {
     background: rgba(26, 26, 26, 0.08) !important;
     color: #1a1a1a !important;
     border-color: rgba(26, 26, 26, 0.25) !important;

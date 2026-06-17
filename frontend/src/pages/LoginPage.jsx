@@ -55,7 +55,7 @@ const LoginPage = () => {
         <div className="login-wrapper">
             <div className="login-card premium-card glow-blue">
                 <div className="login-header">
-                    <img src={logo} alt="CHAT WIFI Logo" className="login-logo-img" />
+                    <img src={logo} alt="Chat Repuestos Logo" className="login-logo-img" />
                     <p>Login Administrativo</p>
                 </div>
 
@@ -108,7 +108,7 @@ const LoginPage = () => {
                 </form>
 
                 <div className="login-footer">
-                    <span className="version">Chat WiFi v1.0</span>
+                    <span className="version">Chat Repuestos v1.0</span>
                 </div>
             </div>
         </div>
