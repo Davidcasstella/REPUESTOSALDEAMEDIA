@@ -54,6 +54,12 @@ const KnowledgeBasePage = () => {
 
     const fileInputRef = useRef(null);
 
+    // Keep activeStageId in a ref to avoid stale closures in socket events
+    const activeStageIdRef = useRef(activeStageId);
+    useEffect(() => {
+        activeStageIdRef.current = activeStageId;
+    }, [activeStageId]);
+
     // Catalog ETL processing state
     const catalogInputRef = useRef(null);
     const [catalogUploading, setCatalogUploading] = useState(false);
@@ -63,13 +69,28 @@ const KnowledgeBasePage = () => {
     const [etlError, setEtlError] = useState(null);
     const [etlStartTime, setEtlStartTime] = useState(null);
 
+    // Catalog job history (persistent — loaded from API)
+    const [catalogHistory, setCatalogHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [catalogStats, setCatalogStats] = useState(null);
+    const [clearingCatalog, setClearingCatalog] = useState(false);
+
     // ── Fetch data ──────────────────────────────────────────
+    // Fetch stages once on mount
     useEffect(() => { fetchStages(); }, []);
 
+    // Reload documents, manual entries AND catalog history when the active stage changes
     useEffect(() => {
         if (activeStageId) {
+            // ── Clear stale data IMMEDIATELY so old stage content never flashes ──
+            setCatalogHistory([]);
+            setCatalogStats(null);
+            setManualEntries([]);
+
             fetchDocuments(activeStageId);
             loadManualEntries(activeStageId);
+            // Reload catalog panel so it shows only this stage's catalogs and product count
+            loadCatalogHistory(activeStageId);
         }
     }, [activeStageId]);
 
@@ -86,6 +107,58 @@ const KnowledgeBasePage = () => {
         } catch {}
     };
 
+    // ── Load catalog history + product stats (scoped to the active stage) ─────────────────
+    const loadCatalogHistory = async (stageId = null) => {
+        // Reset previous stage data immediately — prevents old catalogs from
+        // showing briefly while the new stage loads.
+        setCatalogHistory([]);
+        setCatalogStats(null);
+        setLoadingHistory(true);
+        try {
+            // Build stage query so each stage sees only its own catalogs and stats
+            const stageQuery = stageId ? `&stageId=${stageId}` : '';
+            const [jobsRes, statsRes] = await Promise.all([
+                api.get(`/api/product-catalog/jobs?limit=20${stageQuery}`),
+                api.get(`/api/product-catalog/stats${stageId ? `?stageId=${stageId}` : ''}`),
+            ]);
+            if (jobsRes.data.success) setCatalogHistory(jobsRes.data.jobs || []);
+            if (statsRes.data.success) setCatalogStats(statsRes.data.stats || null);
+        } catch {}
+        setLoadingHistory(false);
+    };
+
+    const handleDeleteCatalogJob = async (jobId) => {
+        // Warn user that products will also be removed
+        const job = catalogHistory.find(j => j.jobId === jobId);
+        const productCount = job?.productsProcessed ? ` (${job.productsProcessed.toLocaleString()} productos)` : '';
+        if (!confirm(`¿Eliminar el registro "${job?.fileName || jobId}"?\n\nEsto también borrará TODOS los productos de este catálogo${productCount}.\n\nEsta acción no se puede deshacer.`)) return;
+        try {
+            const { data } = await api.delete(`/api/product-catalog/jobs/${jobId}`);
+            setCatalogHistory(prev => prev.filter(j => j.jobId !== jobId));
+            // Refresh stats scoped to the current stage so the counter updates immediately
+            await loadCatalogHistory(activeStageId);
+            if (data.deletedProducts > 0) {
+                console.log(`🗑️ ${data.deletedProducts} products removed from catalog`);
+            }
+        } catch { alert('Error al eliminar el registro'); }
+    };
+
+    const handleClearAllProducts = async () => {
+        const total = catalogStats?.totalProducts || 0;
+        const stageLabel = activeStageId && activeStageId !== 'stage_general' ? ` de la etapa activa` : ' del catálogo';
+        if (!confirm(`¿Eliminar TODOS los productos${stageLabel}? (${total.toLocaleString()} productos)\n\nEsta acción no se puede deshacer.`)) return;
+        setClearingCatalog(true);
+        try {
+            // Pass activeStageId so only products of this stage are cleared
+            const stageQuery = activeStageId ? `?stageId=${activeStageId}` : '';
+            const { data } = await api.delete(`/api/product-catalog/products${stageQuery}`);
+            alert(`✅ ${data.deleted} productos eliminados del catálogo`);
+            // Reload history scoped to the current stage
+            await loadCatalogHistory(activeStageId);
+        } catch { alert('Error al limpiar el catálogo'); }
+        setClearingCatalog(false);
+    };
+
     // ── Socket.IO listeners for ETL progress ────────────────
     useEffect(() => {
         const onProgress = (data) => {
@@ -98,6 +171,8 @@ const KnowledgeBasePage = () => {
             setEtlJob(null);
             setEtlCompleted(data);
             setCatalogUploading(false);
+            // Reload persistent history so the new job appears immediately (scoped to the active stage)
+            setTimeout(() => loadCatalogHistory(activeStageIdRef.current), 1500);
         };
         const onError = (data) => {
             setEtlJob(null);
@@ -195,6 +270,8 @@ const KnowledgeBasePage = () => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('parserType', catalogParserType);
+            // Send the active stageId so products are isolated to the current stage
+            formData.append('stageId', activeStageId || 'stage_general');
             const { data } = await api.post('/api/product-catalog/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 timeout: 300000, // 5 min for upload only
@@ -644,6 +721,101 @@ const KnowledgeBasePage = () => {
                             </button>
                         </div>
                     )}
+
+                    {/* ── CATALOG HISTORY (persistent) ── */}
+                    <div className="catalog-history-section">
+                        <div className="catalog-history-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <ClipboardList size={15} style={{ color: '#3b82f6' }} />
+                                <span className="catalog-history-title">Historial de Catálogos</span>
+                                {catalogStats && catalogStats.totalProducts > 0 && (
+                                    <span className="catalog-products-badge">
+                                        {catalogStats.totalProducts.toLocaleString()} productos activos
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <button
+                                    className="catalog-history-refresh"
+                                    onClick={() => loadCatalogHistory(activeStageId)}
+                                    disabled={loadingHistory}
+                                    title="Actualizar historial"
+                                >
+                                    <RefreshCw size={13} className={loadingHistory ? 'spin' : ''} />
+                                </button>
+                                {catalogStats && catalogStats.totalProducts > 0 && (
+                                    <button
+                                        className="catalog-clear-btn"
+                                        onClick={handleClearAllProducts}
+                                        disabled={clearingCatalog}
+                                        title="Eliminar todos los productos del catálogo"
+                                    >
+                                        <Trash2 size={13} />
+                                        {clearingCatalog ? 'Eliminando...' : 'Limpiar catálogo'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {loadingHistory && catalogHistory.length === 0 ? (
+                            <div className="catalog-history-empty">
+                                <Loader size={18} className="spin" style={{ color: '#94a3b8' }} />
+                                <span>Cargando historial...</span>
+                            </div>
+                        ) : catalogHistory.length === 0 ? (
+                            <div className="catalog-history-empty">
+                                <ClipboardList size={22} style={{ color: '#cbd5e1' }} />
+                                <span>No hay catálogos procesados aún</span>
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Los catálogos que proceses aparecerán aquí</span>
+                            </div>
+                        ) : (
+                            <div className="catalog-history-list">
+                                {catalogHistory.map(job => (
+                                    <div key={job.jobId} className={`catalog-job-row catalog-job-${job.status}`}>
+                                        <div className="catalog-job-icon">
+                                            {job.status === 'completed' ? '✅' : job.status === 'error' ? '❌' : '⏳'}
+                                        </div>
+                                        <div className="catalog-job-info">
+                                            <span className="catalog-job-name" title={job.fileName}>
+                                                {job.fileName || 'Catálogo sin nombre'}
+                                            </span>
+                                            <div className="catalog-job-meta">
+                                                <span>{new Date(job.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                {job.productsProcessed > 0 && (
+                                                    <span className="catalog-job-products">
+                                                        {job.productsProcessed.toLocaleString()} productos guardados
+                                                    </span>
+                                                )}
+                                                {job.totalPages > 0 && (
+                                                    <span>{job.totalPages} páginas</span>
+                                                )}
+                                                {job.parserType && (
+                                                    <span className="catalog-job-parser">{job.parserType.toUpperCase()}</span>
+                                                )}
+                                                {job.status === 'error' && job.errorDetails?.[0]?.reason && (
+                                                    <span style={{ color: '#ef4444', fontSize: '0.72rem' }}>
+                                                        {job.errorDetails[0].reason.substring(0, 60)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="catalog-job-actions">
+                                            <span className={`catalog-job-status-badge catalog-status-${job.status}`}>
+                                                {job.status === 'completed' ? 'Completado' : job.status === 'error' ? 'Error' : job.status === 'processing' ? 'Procesando' : 'En cola'}
+                                            </span>
+                                            <button
+                                                className="kb-icon-btn kb-icon-btn-danger"
+                                                title="Eliminar registro del historial"
+                                                onClick={() => handleDeleteCatalogJob(job.jobId)}
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* ── Unified List ── */}
                     {unifiedEntries.length > 0 ? (

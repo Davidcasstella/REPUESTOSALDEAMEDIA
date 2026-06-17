@@ -276,20 +276,31 @@ whatsapp.on('message', async (m) => {
         // (e.g., bot is in the middle of sending welcome/AI with delays),
         // skip the welcome flow to avoid duplicate sends.
         if (_processingJids.has(remoteJid)) {
-            console.log(`⏳ [Lock] ${remoteJid} already being processed — skipping welcome check`);
-        } else {
+            // Safety: auto-clear stale locks older than 30 seconds
+            const lockAge = Date.now() - (_processingJids.get(remoteJid) || 0);
+            if (lockAge > 30000) {
+                console.log(`⚠️ [Lock] Stale lock for ${remoteJid} (${(lockAge / 1000).toFixed(0)}s) — force-releasing`);
+                _processingJids.delete(remoteJid);
+            } else {
+                console.log(`⏳ [Lock] ${remoteJid} already being processed — skipping welcome check`);
+            }
+        }
+
+        if (!_processingJids.has(remoteJid)) {
             // Mark JID as processing BEFORE the welcome flow starts
             _processingJids.set(remoteJid, Date.now());
             try {
                 welcomeWasSent = await welcomeAutomationService.runIfNeeded(whatsapp.sock, remoteJid, chatHistoryService, io, msg.pushName);
             } catch (welcomeErr) {
                 console.error(`⚠️ Welcome automation error: ${welcomeErr.message}`);
+            } finally {
+                // Always release the lock after the welcome check completes
+                _processingJids.delete(remoteJid);
             }
 
             // If the welcome flow was just sent, skip AI response entirely.
             if (welcomeWasSent) {
                 console.log(`🔔 Welcome flow sent to ${remoteJid} — skipping AI response to avoid duplicate greeting`);
-                _processingJids.delete(remoteJid);
                 return;
             }
         }
@@ -674,9 +685,6 @@ whatsapp.on('message', async (m) => {
                 // Track outgoing response for analytics
                 try { analyticsService.trackOutgoing(); } catch (_) { }
             }
-
-            // Release per-JID processing lock
-            _processingJids.delete(remoteJid);
         }
     } catch (error) {
         console.error('❌ Error manejando mensaje entrante para IA:', error.message);

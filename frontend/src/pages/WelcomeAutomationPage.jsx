@@ -29,6 +29,7 @@ const WelcomeAutomationPage = () => {
     const [videoFileName, setVideoFileName] = useState(null);
     const [videoEnabled, setVideoEnabled] = useState(false);
     const [greetMode, setGreetMode] = useState('none');
+    const [campaignContextHours, setCampaignContextHours] = useState(24);
 
     const fileInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -62,6 +63,7 @@ const WelcomeAutomationPage = () => {
             setVideoFileName(cfg.videoFilePath ? 'welcome-video.mp4' : null);
             setVideoEnabled(cfg.videoEnabled || false);
             setGreetMode(cfg.greetMode || 'none');
+            setCampaignContextHours(cfg.campaignContextHours || 24);
             setStats(statsRes.data.data);
         } catch (err) {
             showToast('error', 'Error cargando configuración');
@@ -88,7 +90,8 @@ const WelcomeAutomationPage = () => {
                 messageText,
                 cooldownHours: Number(cooldownHours),
                 videoEnabled,
-                greetMode
+                greetMode,
+                campaignContextHours: Number(campaignContextHours)
             });
             setConfig(data.data);
             showToast('success', 'Configuración guardada correctamente');
@@ -642,6 +645,37 @@ const WelcomeAutomationPage = () => {
                                     <span>Si IA no sabe → "ok" + cooldown 24h</span>
                                 </div>
                             </div>
+
+                        {/* Campaign Context Expiration */}
+                        <div className="premium-card wa-card">
+                            <div className="wa-card-header">
+                                <Clock size={20} style={{ color: '#1a1a1a' }} />
+                                <span className="wa-card-title">Contexto de Campaña (horas)</span>
+                            </div>
+                            <p className="wa-card-desc">
+                                Si un cliente recibió una campaña masiva hace menos de este tiempo, NO se le enviará el saludo de bienvenida (se asume que está en flujo de campaña). Después de este tiempo, se trata como conversación nueva.
+                            </p>
+                            <div className="wa-cooldown-row">
+                                <input
+                                    type="number"
+                                    className="wa-number-input"
+                                    value={campaignContextHours}
+                                    onChange={e => setCampaignContextHours(Math.max(1, Number(e.target.value)))}
+                                    min={1}
+                                    max={720}
+                                />
+                                <span className="wa-cooldown-unit">horas</span>
+                                {[12, 24, 48, 72].map(h => (
+                                    <button
+                                        key={h}
+                                        className={`wa-preset-btn ${campaignContextHours === h ? 'active' : ''}`}
+                                        onClick={() => setCampaignContextHours(h)}
+                                    >
+                                        {h}h
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         </div>
                     </div>
                 </div>

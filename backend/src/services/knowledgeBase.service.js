@@ -133,9 +133,9 @@ class KnowledgeBaseService {
     /**
      * Search the knowledge base.
      */
-    async searchKnowledge(query) {
+    async searchKnowledge(query, stageId = null) {
         try {
-            const results = await retriever.search(query, 5);
+            const results = await retriever.search(query, 5, stageId);
             if (results.length === 0) return null;
 
             const relevant = results.filter(r => r.score > 0.02);

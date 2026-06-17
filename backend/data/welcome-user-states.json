@@ -1,9 +1,10 @@
 {
   "573028599105@s.whatsapp.net": {
-    "lastMessageText": "1 quiero comprar ese",
-    "lastMessageAt": "2026-06-15T06:57:38.248Z",
+    "lastMessageText": "si quiero comprarlo",
+    "lastMessageAt": "2026-06-17T04:54:30.201Z",
     "aiEnabled": false,
-    "cooldownEnabled": true
+    "cooldownEnabled": true,
+    "lastWelcomeSentAt": "2026-06-17T04:53:15.037Z"
   },
   "151771427143897@lid": {
     "lastMessageText": "Que es la vida ?",

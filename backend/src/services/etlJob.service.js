@@ -24,6 +24,16 @@ const TABLE = tableName('etl-jobs');
 const TEMP_DIR = path.join(__dirname, '../../data/temp-catalogs');
 const BATCH_SIZE = 50; // Pages per batch
 
+// ── In-memory jobs list cache ───────────────────────────────────────────────────
+// Avoids a full DynamoDB Scan on every page load of the history panel.
+// TTL: 10 min as safety fallback — invalidated on create / delete / complete.
+const JOBS_CACHE_TTL_MS = 10 * 60_000; // 10 minutes
+let _jobsCache = null; // { items: Array, expiresAt: number }
+
+function _invalidateJobsCache() {
+    _jobsCache = null;
+}
+
 // Socket.IO reference — set by app.js
 let io = null;
 
@@ -45,7 +55,7 @@ class ETLJobService {
      * @param {string} parserType - Parser type ('bdc' or 'generic')
      * @returns {Object} - Job record with { jobId, status }
      */
-    async createJob(fileName, fileSize, tempFilePath, parserType) {
+    async createJob(fileName, fileSize, tempFilePath, parserType, stageId) {
         const jobId = `etl_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
         const job = {
@@ -55,6 +65,8 @@ class ETLJobService {
             fileSize,
             tempFilePath,
             parserType: parserType || 'bdc',
+            // Tag the job with the stage it belongs to
+            stageId: stageId || 'stage_general',
             totalPages: 0,
             currentPage: 0,
             productsFound: 0,
@@ -68,7 +80,9 @@ class ETLJobService {
         };
 
         await docClient.send(new PutCommand({ TableName: TABLE, Item: job }));
-        console.log(`📋 ETL Job created: ${jobId} (${fileName})`);
+        // Invalidate cache so the new job appears in the next listJobs call
+        _invalidateJobsCache();
+        console.log(`📋 ETL Job created: ${jobId} (${fileName}, stage: ${job.stageId})`);
         return job;
     }
 
@@ -91,24 +105,60 @@ class ETLJobService {
     }
 
     /**
-     * List recent jobs.
+     * List recent jobs, optionally filtered by stageId.
      * @param {number} limit - Max jobs to return
+     * @param {string|null} stageId - Optional stage filter
      * @returns {Array}
      */
-    async listJobs(limit = 20) {
+    async listJobs(limit = 20, stageId = null) {
         try {
-            const { Items } = await docClient.send(new ScanCommand({
-                TableName: TABLE,
-                Limit: limit,
-            }));
+            // Use cache to avoid full DynamoDB scan on every page load
+            const now = Date.now();
+            let allJobs;
+            if (_jobsCache && _jobsCache.expiresAt > now) {
+                allJobs = _jobsCache.items;
+            } else {
+                const { Items } = await docClient.send(new ScanCommand({
+                    TableName: TABLE,
+                }));
+                allJobs = Items || [];
+                _jobsCache = { items: allJobs, expiresAt: now + JOBS_CACHE_TTL_MS };
+            }
 
-            // Sort by createdAt descending
-            return (Items || []).sort((a, b) =>
-                new Date(b.createdAt) - new Date(a.createdAt)
-            );
+            let jobs = allJobs;
+
+            // Filter by stageId when provided so each stage sees only its own catalogs
+            if (stageId) {
+                jobs = jobs.filter(j => (j.stageId || 'stage_general') === stageId);
+            }
+
+            // Sort by createdAt descending and apply limit
+            return jobs
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, limit);
         } catch (err) {
             console.error('❌ Error listing jobs:', err.message);
             return [];
+        }
+    }
+
+    /**
+     * Delete a single ETL job record by ID.
+     * @param {string} jobId
+     */
+    async deleteJob(jobId) {
+        try {
+            const { DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+            await docClient.send(new DeleteCommand({
+                TableName: TABLE,
+                Key: { jobId },
+            }));
+            // Invalidate cache so the deleted job disappears from the next list
+            _invalidateJobsCache();
+            console.log(`🗑️ ETL Job deleted: ${jobId}`);
+        } catch (err) {
+            console.error(`❌ Error deleting job ${jobId}:`, err.message);
+            throw err;
         }
     }
 
@@ -138,6 +188,11 @@ class ETLJobService {
                 ExpressionAttributeNames: names,
                 ExpressionAttributeValues: values,
             }));
+            // Invalidate cache when a job reaches a terminal state
+            // so the history panel shows the updated status immediately
+            if (updates.status === 'completed' || updates.status === 'error') {
+                _invalidateJobsCache();
+            }
         } catch (err) {
             console.error(`⚠️ Error updating job ${jobId}:`, err.message);
         }
@@ -169,6 +224,8 @@ class ETLJobService {
 
             tempPath = job.tempFilePath;
             const parserType = job.parserType || 'bdc';
+            // Retrieve the stageId stored when the job was created
+            const stageId = job.stageId || 'stage_general';
 
             // ────── Phase 1: EXTRACT — Get page count ──────
             await this.updateProgress(jobId, {
@@ -272,8 +329,8 @@ class ETLJobService {
                 message: `Cargando ${normalized.length} productos en la base de datos...`,
             });
 
-            // ────── Phase 4: LOAD — Save to DynamoDB ──────
-            const saveResult = await productCatalog.saveProducts(normalized, job.fileName);
+            // ────── Phase 4: LOAD — Save to DynamoDB (tagged with stageId) ──────
+            const saveResult = await productCatalog.saveProducts(normalized, job.fileName, stageId);
 
             const finalErrors = normErrors.length + saveResult.errors;
 

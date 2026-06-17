@@ -156,16 +156,21 @@ router.post('/search', verifyToken, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Query is required' });
         }
 
-        // Get the actual chatbot response (goes through RAG + AI provider)
+        // Get the stageId from query parameters or body
+        const stageId = req.query.stageId || req.body.stageId || null;
+
+        // Get the actual chatbot response (goes through RAG + AI provider, scoped to the stage)
         const aiResponseService = require('../services/aiResponse.service');
-        const answer = await aiResponseService.generateResponse(query);
+        const answer = await aiResponseService.generateResponse(query, null, stageId);
 
         // Also check if the query matches a product in the catalog
-        // to provide price breakdown for the admin panel
+        // to provide price breakdown for the admin panel (scoped to the active stage)
         let priceBreakdown = null;
         try {
             const productCatalog = require('../services/productCatalog.service');
-            const productResults = await productCatalog.search(query);
+            // Use stageId from query so the breakdown reflects the correct stage
+            const searchStageId = req.query.stageId || null;
+            const productResults = await productCatalog.search(query, searchStageId);
             if (productResults.length > 0) {
                 priceBreakdown = productCatalog.getPriceBreakdown(productResults[0]);
                 priceBreakdown.codigo = productResults[0].codigo;

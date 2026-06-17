@@ -5,6 +5,21 @@ const tokenUsageService = require('./tokenUsageService');
 const apiKeyRotation = require('./apiKeyRotation.service');
 const chatHistoryService = require('./chatHistory.service');
 
+// ── Spelling-correction cache ────────────────────────────────────────────────
+// Avoids a full LLM round-trip when the same raw term was already corrected.
+// Key: lowercase raw prompt, Value: { corrected, expiresAt }
+const _spellingCache = new Map();
+const SPELLING_CACHE_TTL_MS = 5 * 60_000; // 5 minutes
+const SPELLING_CACHE_MAX = 200;           // max entries to cap memory usage
+
+function _spellingCacheSet(raw, corrected) {
+    // Evict oldest entry when at capacity
+    if (_spellingCache.size >= SPELLING_CACHE_MAX) {
+        _spellingCache.delete(_spellingCache.keys().next().value);
+    }
+    _spellingCache.set(raw, { corrected, expiresAt: Date.now() + SPELLING_CACHE_TTL_MS });
+}
+
 class AIResponseService {
     /**
      * Retrieves campaign context for the JID and builds a prompt string.
@@ -26,13 +41,121 @@ class AIResponseService {
     }
 
     /**
+     * Executes a one-off call to the active provider with key rotation and no history.
+     */
+    async callActiveProvider(systemPrompt, userPrompt) {
+        const activeProvider = await aiProvidersService.getActiveProvider();
+        if (!activeProvider) {
+            console.warn('⚠️ No active provider.');
+            return '';
+        }
+        const { name, apiKey } = activeProvider;
+        const providerName = name.toLowerCase();
+
+        const isGroq = apiKey.startsWith('gsk_') || (providerName.includes('groq') || providerName.includes('grog'));
+        const isOpenAI = !isGroq && (apiKey.startsWith('sk-') || providerName.includes('openai'));
+        const isGemini = !isGroq && !isOpenAI && (apiKey.startsWith('AIza') || providerName.includes('gemini'));
+        const isGrok = !isGroq && !isOpenAI && !isGemini && providerName.includes('grok');
+
+        try {
+            if (isGroq) {
+                return await apiKeyRotation.callWithRotation(
+                    'groq',
+                    (key, sys, usr) => this.callGroq(key, sys, usr, []),
+                    systemPrompt,
+                    userPrompt,
+                    apiKey
+                );
+            } else if (isOpenAI) {
+                return await apiKeyRotation.callWithRotation(
+                    'openai',
+                    (key, sys, usr) => this.callOpenAI(key, sys, usr, []),
+                    systemPrompt,
+                    userPrompt,
+                    apiKey
+                );
+            } else if (isGrok) {
+                return await apiKeyRotation.callWithRotation(
+                    'grok',
+                    (key, sys, usr) => this.callGrok(key, sys, usr, []),
+                    systemPrompt,
+                    userPrompt,
+                    apiKey
+                );
+            } else if (isGemini) {
+                return await apiKeyRotation.callWithRotation(
+                    'gemini',
+                    (key, sys, usr) => this.callGemini(key, sys, usr, []),
+                    systemPrompt,
+                    userPrompt,
+                    apiKey
+                );
+            } else if (providerName.includes('z.ia')) {
+                return 'NONE'; // Local extractor doesn't support structured corrections
+            }
+        } catch (err) {
+            console.warn(`⚠️ Error calling active provider in callActiveProvider: ${err.message}`);
+        }
+        return '';
+    }
+
+    /**
+     * Uses the active LLM provider to correct typos and spelling errors
+     * and extract normalized search terms.
+     * Results are cached for 5 minutes to avoid repeated AI round-trips
+     * for the same query (e.g. the same customer asking for the same part).
+     */
+    async correctAndExtractSearchTerms(prompt) {
+        if (!prompt || prompt.length < 3) return null;
+
+        // Normalize cache key: lowercase + strip extra whitespace
+        const cacheKey = prompt.trim().toLowerCase().replace(/\s+/g, ' ');
+
+        // Return cached correction if still fresh
+        const cached = _spellingCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now()) {
+            console.log(`⚡ [AI Query Cache HIT] "${prompt}" → "${cached.corrected}"`);
+            return cached.corrected;
+        }
+
+        try {
+            const systemPrompt = `Analyze the customer's message and extract the name of the industrial spare part, tool, or product they are searching for.
+Correct any spelling mistakes, typos, or lack of accents (for example:
+- "nesesito maya anticomatante" -> "malla anticolmatante"
+- "busco cono de trituradora" -> "cono trituradora"
+- "tienen vanda trasnportadora" -> "banda transportadora"
+- "mansas" -> "mordazas"
+- "rodamieto de rodillo" -> "rodamiento rodillos"
+- "lubricante industrial royal" -> "lubricante royal"
+).
+Respond ONLY with the corrected, singular/plural search terms in Spanish (e.g. "malla anticolmatante") or "NONE" if no product search intent is found. Do not write anything else.`;
+
+            const result = await this.callActiveProvider(systemPrompt, prompt);
+            const cleaned = (result || '').trim().replace(/[".']/g, '');
+            if (cleaned.toUpperCase() === 'NONE' || cleaned.length < 3) {
+                // Cache the null result too so we don't call the AI again
+                _spellingCacheSet(cacheKey, null);
+                return null;
+            }
+            console.log(`🧠 [AI Query Normalizer] Original: "${prompt}" -> Corrected: "${cleaned}"`);
+            // Store in cache for future identical queries
+            _spellingCacheSet(cacheKey, cleaned);
+            return cleaned;
+        } catch (err) {
+            console.warn('⚠️ Error correcting query with LLM:', err.message);
+            return null;
+        }
+    }
+
+    /**
      * Generates a response using the active AI provider.
      * If knowledge base has relevant context, uses RAG to constrain the response.
      * @param {string} prompt - The user message.
      * @param {string|null} jid - WhatsApp JID for conversation history context.
+     * @param {string|null} stageId - Optional stage filter to isolate RAG and catalog searches.
      * @returns {Promise<string>} - The generated response.
      */
-    async generateResponse(prompt, jid = null) {
+    async generateResponse(prompt, jid = null, stageId = null) {
         const activeProvider = await aiProvidersService.getActiveProvider();
 
         if (!activeProvider) {
@@ -43,27 +166,91 @@ class AIResponseService {
         const { name, apiKey } = activeProvider;
         const providerName = name.toLowerCase();
 
-        // NEW: Product catalog lookup (structured DB search before RAG)
-        // If the user message contains a product reference or code,
-        // return a direct response from the products database.
-        // This bypasses RAG only for exact product matches — everything else continues as normal.
+        // 1. Direct structured lookup (price/code exact matches)
         try {
             const productCatalogService = require('./productCatalog.service');
-            const productResult = await productCatalogService.searchFromChatQuery(prompt, jid);
+            const productResult = await productCatalogService.searchFromChatQuery(prompt, jid, stageId);
             if (productResult) {
                 console.log('📦 Product found in catalog DB — returning direct response');
                 return productResult;
             }
         } catch (catalogErr) {
-            // Non-blocking: if catalog search fails, continue with normal RAG flow
             console.warn('⚠️ Product catalog search error (non-blocking):', catalogErr.message);
         }
 
-        let kbContext = await knowledgeBaseService.searchKnowledge(prompt);
+        // 2. Load general RAG knowledge base context (scoped to stageId)
+        let kbContext = await knowledgeBaseService.searchKnowledge(prompt, stageId);
         
+        // 3. Typo-tolerant/accents-tolerant database product catalog search
+        let catalogContextText = '';
+        try {
+            // Skip catalog search if the customer is rejecting or discarding previous options
+            const rejectionPhrases = [
+                'no me sirve', 'ninguna me sirve', 'ninguno me sirve', 'no sirve', 'no son', 'no es la',
+                'ninguna', 'ninguno', 'de esas ninguna', 'de esos ninguno', 'otra medida', 'otra referencia',
+                'diferente medida', 'no, de esas', 'no de esas', 'no me queda', 'no es lo que',
+                'busco otra', 'necesito otra', 'quiero otra', 'diferente', 'otro modelo', 'otra marca'
+            ];
+            const promptLowerCheck = prompt.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const isRejectionMsg = rejectionPhrases.some(ph => promptLowerCheck.includes(ph));
+
+            if (isRejectionMsg) {
+                console.log('🔄 [AI] Rejection message detected — skipping catalog search, requesting clarification context.');
+                catalogContextText = 'PRODUCTOS ENCONTRADOS EN NUESTRO CATÁLOGO DYNAMODB: Ninguno. El cliente está rechazando opciones anteriores o pidiendo una referencia diferente. Debes preguntarle con detalle qué tipo de repuesto necesita (marca, medida, modelo de máquina, número OEM).\n';
+            } else {
+                const correctedTerms = await this.correctAndExtractSearchTerms(prompt);
+                if (correctedTerms) {
+                    const productCatalogService = require('./productCatalog.service');
+                    const BROAD_SEARCH_THRESHOLD = 8;
+                    const { results: catalogProducts, totalMatches, allMatchedItems } = await productCatalogService.searchWithCount(correctedTerms, stageId);
+                    
+                    if (totalMatches > BROAD_SEARCH_THRESHOLD && allMatchedItems && allMatchedItems.length > 0) {
+                        // Broad search detected — extract facets and ask clarifying questions
+                        console.log(`🔎 [Broad Search] ${totalMatches} total matches for "${correctedTerms}" — extracting facets for clarification`);
+                        const facets = productCatalogService.extractFacets(allMatchedItems, totalMatches);
+                        
+                        catalogContextText = `BÚSQUEDA AMPLIA DETECTADA: Se encontraron ${totalMatches} resultados para "${correctedTerms}".\n`;
+                        
+                        if (facets.brands.length > 0) {
+                            const topBrands = facets.brands.slice(0, 8).map(b => `${b.name} (${b.count})`).join(', ');
+                            catalogContextText += `MARCAS DISPONIBLES: ${topBrands}\n`;
+                        }
+                        
+                        if (facets.keywords.length > 0) {
+                            const topKeywords = facets.keywords.slice(0, 10).map(k => k.word).join(', ');
+                            catalogContextText += `MODELOS/MEDIDAS/VARIANTES FRECUENTES: ${topKeywords}\n`;
+                        }
+                        
+                        catalogContextText += `INSTRUCCIÓN: Hay demasiados resultados para mostrar. DEBES hacer preguntas aclaratorias amables al cliente usando las marcas y modelos disponibles arriba. Pregunta máximo 2 cosas por mensaje. Ejemplos de preguntas:\n`;
+                        catalogContextText += `- Para qué vehículo o máquina necesita el repuesto?\n`;
+                        catalogContextText += `- Qué marca de vehículo tiene?\n`;
+                        catalogContextText += `- Tiene alguna medida o referencia específica?\n`;
+                        catalogContextText += `NO muestres productos todavía. Primero ayuda al cliente a filtrar.\n`;
+                    } else if (catalogProducts && catalogProducts.length > 0) {
+                        // Precise search — show results directly (existing behavior)
+                        console.log(`📦 [Catalog RAG] Found ${catalogProducts.length} items (${totalMatches} total) for corrected query: "${correctedTerms}"`);
+                        catalogContextText = 'PRODUCTOS ENCONTRADOS EN NUESTRO CATÁLOGO DYNAMODB (Muestra estas opciones exactas al cliente con código y precio final):\n';
+                        catalogProducts.slice(0, 5).forEach(p => {
+                            const priceStr = p.precio_final > 0 ? `$${p.precio_final.toLocaleString('es-CO')}` : 'Sin precio';
+                            catalogContextText += `- Código: ${p.codigo} | ${p.descripcion} | Marca: ${p.marca || 'N/A'} | Precio: ${priceStr}\n`;
+                        });
+                    } else {
+                        console.log(`📦 [Catalog RAG] 0 items found in DynamoDB for corrected query: "${correctedTerms}"`);
+                        catalogContextText = 'PRODUCTOS ENCONTRADOS EN NUESTRO CATÁLOGO DYNAMODB: Ninguno. No hay repuestos con esta referencia exacta en el catálogo activo.\n';
+                    }
+                }
+            }
+        } catch (ragCatalogErr) {
+            console.warn('⚠️ Typo-tolerant catalog search failed:', ragCatalogErr.message);
+        }
+
+        // Combine contexts
+        if (catalogContextText) {
+            kbContext = kbContext ? `${kbContext}\n\n${catalogContextText}` : catalogContextText;
+        }
+
         // For short conversational messages (nose, si, no, ok, dale, etc.)
-        // RAG search often fails because they don't match well with embeddings.
-        // Load the full KB content directly so the AI always has context.
+        // Load the full KB content directly so the AI always has context (filtered by stageId)
         if (!kbContext) {
             const shortMessages = ['nose', 'no se', 'no sé', 'no', 'si', 'ok', 'dale', 'ya', 'bien', 'bueno', 'hola', 'como', 'que', 'interesado', 'quiero', 'me interesa', 'cuanto', 'precio'];
             const promptLower = prompt.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -77,7 +264,11 @@ class AIResponseService {
                     const mkPath = pathLib.join(__dirname, '../../knowledge-base/manual-knowledge.json');
                     const entries = await fs.readJson(mkPath);
                     if (Array.isArray(entries) && entries.length > 0) {
-                        kbContext = entries.map(e => `${e.title}\n${e.content}`).join('\n\n');
+                        let filteredEntries = entries;
+                        if (stageId) {
+                            filteredEntries = entries.filter(e => e.stageId === stageId);
+                        }
+                        kbContext = filteredEntries.map(e => `${e.title}\n${e.content}`).join('\n\n');
                     }
                 } catch (err) {
                     console.error('❌ Error loading manual-knowledge fallback:', err.message);
@@ -160,11 +351,23 @@ REGLAS CRITICAS DE FORMATO (LONGITUD):
 - PROHIBIDO usar enters o \n dentro de cada parte.
 - ROMPE CUALQUIER EXPLICACION LARGA usando |||. Ejemplo: sumercé con gusto le ayudo ||| tenemos ese repuesto disponible ||| dême el modelo del carro y le busco
 
-REGLA ESPECIAL: CLIENTE NO HA ENCONTRADO SU REPUESTO:
-- Si el cliente lleva 2 o mas mensajes buscando y aun no encuentra lo que necesita SIEMPRE ofrece alternativas.
-- Busca en el Contexto hasta 5 repuestos parecidos o del mismo tipo y listalos numerados.
-- Formato para listar alternativas: "sumercé le muestro algunas referencias similares que tenemos" ||| "1. [codigo] - [descripcion] - [marca]" ||| "2. [codigo] - [descripcion] - [marca]" ... ||| "me dice cuál le interesa y le doy el precio".
-- NUNCA desapareces sin dar opciones cuando el cliente no encuentra su repuesto.
+REGLA ESPECIAL: BÚSQUEDA Y PREGUNTAS ACLARATORIAS DE REPUESTOS:
+- Si en el Contexto hay "PRODUCTOS ENCONTRADOS EN NUESTRO CATÁLOGO DYNAMODB", muéstrale estas opciones exactas al cliente con su respectivo código y precio final (ej. "sumercé le encontré estas opciones...").
+- Si no hay productos en el catálogo, o si la lista está vacía, o si las referencias encontradas no son exactamente lo que el cliente busca, sumercé DEBE hacer preguntas aclaratorias amables e interactivas para ayudarle a afinar la búsqueda.
+- Pregunta una o máximo dos cosas de manera muy cortés y en tono colombiano ("sumercé"):
+  * ¿Cuál es la marca de su máquina o equipo donde va instalado?
+  * ¿Cuáles son las medidas o dimensiones exactas del repuesto?
+  * ¿Tiene el modelo exacto de la máquina (ej. Chancadora HP300, Trituradora Metso, etc.)?
+  * ¿Dispone del número de parte original (OEM) o referencia del fabricante?
+- NUNCA respondas diciendo simplemente que no tienes el repuesto sin antes preguntarle estos detalles para guiar la búsqueda.
+
+REGLA ESPECIAL: BÚSQUEDA AMPLIA DE PRODUCTOS:
+- Si el contexto contiene "BÚSQUEDA AMPLIA DETECTADA" significa que hay demasiados resultados para el repuesto que busca el cliente.
+- En este caso DEBES hacer preguntas aclaratorias usando las MARCAS y MODELOS/MEDIDAS disponibles que se te proporcionan en el contexto.
+- Menciona cuántos resultados hay para que el cliente entienda que sí tenemos el producto pero necesitas más detalle.
+- Pregunta de forma amable UNA o DOS cosas máximo por mensaje usando las opciones reales del catálogo.
+- Ejemplo: "sumercé claro que manejamos anillos de motor tenemos más de 300 referencias ||| me ayuda con la marca del vehículo? tenemos Toyota Hyundai Nissan Chevrolet entre otras ||| o si tiene la referencia exacta con gusto le busco"
+- Cuando el cliente responda la búsqueda se refinará automáticamente con su respuesta.
 
 RESPUESTAS A "NOSE" "NO SE" "NO":
 Cuando el cliente dice que no sabe SIEMPRE responde en 2 o 3 partes separadas por |||

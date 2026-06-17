@@ -14,6 +14,7 @@ const DEFAULT_CONFIG = {
     videoFilePath: null,   // absolute path to .mp4 file on disk
     videoEnabled: false,   // toggle video sending independently
     cooldownHours: 24,
+    campaignContextHours: 24, // hours after which a campaign context is considered expired
     greetMode: 'none',     // can be 'none' | 'whatsapp' | 'dashboard'
     updatedAt: null
 };
@@ -44,6 +45,7 @@ class WelcomeAutomationService {
         const config = await fs.readJson(CONFIG_PATH);
         return {
             greetMode: 'none',
+            campaignContextHours: 24,
             ...config
         };
     }
@@ -100,7 +102,7 @@ class WelcomeAutomationService {
     async resetUserState(jid) {
         const states = await this._readStates();
         if (states[jid]) {
-            // Keep the user entry but clear welcome timestamp
+            // Keep the user entry but clear welcome timestamp so welcome re-fires
             delete states[jid].lastWelcomeSentAt;
             // Also re-enable AI when a full reset is requested
             states[jid].aiEnabled = true;
@@ -113,6 +115,14 @@ class WelcomeAutomationService {
             await leadScoringService.resetLeadPriority(jid);
         } catch (err) {
             console.warn('⚠️ Error resetting lead priority on user state reset:', err.message);
+        }
+
+        // Clear campaign context so welcome flow is not blocked by stale campaign data
+        try {
+            const campaignsService = require('./campaigns.service');
+            await campaignsService.deleteCampaignContext(jid);
+        } catch (err) {
+            console.warn('⚠️ Error clearing campaign context on user state reset:', err.message);
         }
     }
 
@@ -237,13 +247,17 @@ class WelcomeAutomationService {
         const config = await this.getConfig();
         if (!config.isEnabled) return false;
 
-        // Skip welcome if they recently received a campaign
+        // Skip welcome only if they RECENTLY received a campaign (within campaignContextHours)
         try {
             const campaignsService = require('./campaigns.service');
             const campaignCtx = await campaignsService.getCampaignContextForJid(jid);
-            if (campaignCtx) {
-                console.log(`🎯 Active campaign context found for ${jid} — skipping welcome flow`);
-                return false;
+            if (campaignCtx && campaignCtx.sentAt) {
+                const campaignAgeHours = (Date.now() - new Date(campaignCtx.sentAt).getTime()) / 3600000;
+                if (campaignAgeHours < (config.campaignContextHours || 24)) {
+                    console.log(`🎯 Recent campaign context found for ${jid} (${campaignAgeHours.toFixed(1)}h ago) — skipping welcome flow`);
+                    return false;
+                }
+                console.log(`📋 Expired campaign context for ${jid} (${campaignAgeHours.toFixed(1)}h ago, limit: ${config.campaignContextHours || 24}h) — proceeding with welcome`);
             }
         } catch (campaignErr) {
             console.warn('⚠️ Error checking campaign context in welcome flow:', campaignErr.message);
@@ -375,6 +389,14 @@ class WelcomeAutomationService {
 
         // 4. Persist timestamp — only after successful completion
         await this.updateUserState(jid);
+
+        // 5. Clean up stale campaign context now that welcome has been sent
+        try {
+            const campaignsService = require('./campaigns.service');
+            await campaignsService.deleteCampaignContext(jid);
+        } catch (err) {
+            console.warn('⚠️ Error cleaning campaign context after welcome:', err.message);
+        }
 
         return true;
     }

@@ -254,6 +254,21 @@ class CampaignsService {
         }
     }
 
+    /**
+     * Delete the campaign context for a JID.
+     * Called when the welcome flow fires or when a user state is fully reset,
+     * so stale campaign context doesn't block future welcome sequences.
+     */
+    async deleteCampaignContext(jid) {
+        try {
+            const TABLE_CONTEXT = 'campaign-context';
+            await deleteItem(TABLE_CONTEXT, { jid });
+            console.log(`🗑️ Campaign context deleted for ${jid}`);
+        } catch (err) {
+            console.warn(`⚠️ Failed to delete campaign context for ${jid}: ${err.message}`);
+        }
+    }
+
     // ── Private Helpers ──
 
     async _storeCampaignContext(jid, campaign) {

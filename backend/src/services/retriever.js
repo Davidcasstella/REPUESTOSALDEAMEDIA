@@ -1,5 +1,6 @@
 const fileStorage = require('./fileStorage');
 const embeddingService = require('./embeddingService');
+const stagesService = require('./stages.service');
 
 class Retriever {
     /**
@@ -38,15 +39,46 @@ class Retriever {
      * Search the knowledge base for the most relevant chunks.
      * @param {string} query - User query text
      * @param {number} topK - Number of top results to return
+     * @param {string|null} stageId - Optional stage filter
      * @returns {Promise<Array<{chunkId: string, score: number, text: string}>>}
      */
-    async search(query, topK = 5) {
+    async search(query, topK = 5, stageId = null) {
         // Generate embedding for the query
         const queryVector = await embeddingService.generateEmbedding(query);
 
         // Load all stored embeddings
-        const embeddings = await fileStorage.getAllEmbeddings();
-        console.log(`🔍 Retriever: Searching through ${embeddings.length} embeddings...`);
+        const allEmbeddings = await fileStorage.getAllEmbeddings();
+        console.log(`🔍 Retriever: Searching through ${allEmbeddings.length} total embeddings...`);
+
+        if (allEmbeddings.length === 0) {
+            return [];
+        }
+
+        // Stage isolation: filter embeddings based on allowed stages (either stageId or all active stages)
+        let allowedDocIds = new Set();
+        try {
+            const index = await fileStorage.getIndex();
+            let allowedStages = [];
+            if (stageId) {
+                allowedStages = [stageId];
+            } else {
+                const stages = await stagesService.getAll();
+                allowedStages = stages.filter(s => s.active).map(s => s.stageId);
+                // Fallback to general if no active stages are found
+                if (allowedStages.length === 0) {
+                    allowedStages = ['stage_general'];
+                }
+            }
+
+            index.filter(d => allowedStages.includes(d.stageId || 'stage_general')).forEach(d => {
+                allowedDocIds.add(d.id);
+            });
+        } catch (err) {
+            console.error('⚠️ Error filtering retriever by stage:', err.message);
+        }
+
+        const embeddings = allEmbeddings.filter(emb => allowedDocIds.has(emb.documentId));
+        console.log(`🔍 Retriever: Found ${embeddings.length} embeddings scoped to allowed stages.`);
 
         if (embeddings.length === 0) {
             return [];
