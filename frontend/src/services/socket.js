@@ -6,9 +6,8 @@ const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const socket = io(BACKEND_URL, {
     autoConnect: true,
     reconnectionAttempts: 5,
-    // Force polling transport for Cloudflare tunnel compatibility
-    // (Cloudflare free tunnels don't support WebSocket upgrades reliably)
-    transports: ['polling', 'websocket'],
+    // CloudFront supports native WebSocket upgrades
+    transports: ['websocket', 'polling'],
     withCredentials: false,
 });
 

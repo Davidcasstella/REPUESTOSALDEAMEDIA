@@ -43,9 +43,23 @@ global.aiEnabled = true;
 
 const app = express();
 
-// Explicit CORS config — required for Cloudflare Tunnel + Vercel cross-origin requests
+// Explicit CORS config — restrict to known origins (Vercel + local dev)
+const ALLOWED_ORIGINS = [
+    'https://voleo-solutions.vercel.app',   // Vercel production frontend
+    'http://localhost:5173',                // Local development
+    'http://localhost:3000',                // Local backend serving frontend
+];
+
 const corsOptions = {
-    origin: true, // Reflect the request origin (allows any origin)
+    origin: (origin, callback) => {
+        // Allow requests with no origin (server-to-server, curl, mobile apps)
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`⚠️ CORS blocked request from: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: false
