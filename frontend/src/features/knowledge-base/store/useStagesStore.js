@@ -12,7 +12,12 @@ const useStagesStore = create((set, get) => ({
         try {
             const { data } = await api.get('/api/knowledge-base/stages');
             if (data.success) {
-                const stages = data.stages || [];
+                const stages = (data.stages || []).sort((a, b) => {
+                    // "General" (default) always first
+                    if (a.isDefault || a.id === 'stage_general') return -1;
+                    if (b.isDefault || b.id === 'stage_general') return 1;
+                    return 0;
+                });
                 set({ stages, loading: false });
 
                 // If current activeStageId doesn't exist in stages, reset to default
