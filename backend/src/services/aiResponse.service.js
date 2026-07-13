@@ -14,20 +14,10 @@ class AIResponseService {
      * @returns {Promise<string>} - The generated response.
      */
     async generateResponse(prompt, jid = null) {
-        const activeProvider = await aiProvidersService.getActiveProvider();
-
-        if (!activeProvider) {
-            console.warn('⚠️ No hay ningún proveedor de IA activo.');
-            return 'Lo siento, en este momento no tengo un motor de IA configurado.';
-        }
-
-        const { name, apiKey } = activeProvider;
-        const providerName = name.toLowerCase();
-
-        // NEW: Product catalog lookup (structured DB search before RAG)
-        // If the user message contains a product reference or code,
+        // FIRST: Product catalog lookup (DynamoDB — no AI provider needed)
+        // If the user message contains a product reference or description,
         // return a direct response from the products database.
-        // This bypasses RAG only for exact product matches — everything else continues as normal.
+        // This runs BEFORE AI provider check so products work even without AI configured.
         try {
             const productCatalogService = require('./productCatalog.service');
             const productResult = await productCatalogService.searchFromChatQuery(prompt, jid);
@@ -39,6 +29,16 @@ class AIResponseService {
             // Non-blocking: if catalog search fails, continue with normal RAG flow
             console.warn('⚠️ Product catalog search error (non-blocking):', catalogErr.message);
         }
+
+        const activeProvider = await aiProvidersService.getActiveProvider();
+
+        if (!activeProvider) {
+            console.warn('⚠️ No hay ningún proveedor de IA activo.');
+            return 'Lo siento, en este momento no tengo un motor de IA configurado.';
+        }
+
+        const { name, apiKey } = activeProvider;
+        const providerName = name.toLowerCase();
 
         let kbContext = await knowledgeBaseService.searchKnowledge(prompt);
         

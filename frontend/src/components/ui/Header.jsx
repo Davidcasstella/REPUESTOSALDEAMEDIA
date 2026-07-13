@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, QrCode, BrainCircuit, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../Logo/logo.png';
+import logo from '../../Logo/repuestos-logo.jpeg';
 import './Header.css';
 
 const Header = () => {
@@ -11,7 +11,7 @@ const Header = () => {
     return (
         <header className="top-header">
             <div className="header-logo-mobile">
-                <img src={logo} alt="CHAT WIFI" className="header-logo-img" />
+                <img src={logo} alt="CHAT REPUESTOS" className="header-logo-img" />
             </div>
 
             {/* Visual cyber status badges - desktop only */}

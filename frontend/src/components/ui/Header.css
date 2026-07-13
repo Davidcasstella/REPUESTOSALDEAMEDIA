@@ -121,7 +121,9 @@
 
 .header-logo-img {
     height: 42px;
-    width: auto;
+    width: 42px;
+    object-fit: cover;
+    border-radius: 50%;
     filter: drop-shadow(0 0 10px rgba(26, 26, 26, 0.6));
     transition: transform 0.3s ease;
 }

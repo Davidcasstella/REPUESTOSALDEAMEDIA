@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, LogOut, Zap, QrCode, BrainCircuit, BookOpen, BellRing, BarChart3 } from 'lucide-react';
 import api from '../services/api';
-import logo from '../Logo/logo.png';
+import logo from '../Logo/repuestos-logo.jpeg';
 import './Layout.css';
 
 const DashboardLayout = () => {
@@ -20,7 +20,7 @@ const DashboardLayout = () => {
         <div className="layout-container">
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <img src={logo} alt="CHAT WIFI Logo" className="logo-img-sidebar" />
+                    <img src={logo} alt="CHAT REPUESTOS Logo" className="logo-img-sidebar" />
                 </div>
 
                 <nav className="sidebar-nav">

@@ -19,10 +19,12 @@
 }
 
 .login-logo-img {
-    width: 180px;
-    height: auto;
-    margin-bottom: 2rem;
-    filter: none;
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
 .login-header h1 {

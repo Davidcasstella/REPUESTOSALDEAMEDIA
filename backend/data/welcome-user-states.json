@@ -127,5 +127,12 @@
     "lastMessageAt": "2026-04-18T03:00:47.327Z",
     "aiEnabled": false,
     "cooldownEnabled": true
+  },
+  "573215952604@s.whatsapp.net": {
+    "lastMessageText": "[unrecognized message]",
+    "lastMessageAt": "2026-05-16T21:15:21.898Z",
+    "aiEnabled": true,
+    "cooldownEnabled": true,
+    "lastWelcomeSentAt": "2026-05-16T21:15:26.426Z"
   }
 }

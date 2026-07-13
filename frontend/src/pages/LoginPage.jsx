@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Lock, Loader2, Zap, Eye, EyeOff } from 'lucide-react';
-import logo from '../Logo/logo.png';
+import logo from '../Logo/repuestos-logo.jpeg';
 import './LoginPage.css';
 
 const LoginPage = () => {
@@ -55,7 +55,7 @@ const LoginPage = () => {
         <div className="login-wrapper">
             <div className="login-card premium-card glow-blue">
                 <div className="login-header">
-                    <img src={logo} alt="CHAT WIFI Logo" className="login-logo-img" />
+                    <img src={logo} alt="CHAT REPUESTOS Logo" className="login-logo-img" />
                     <p>Login Administrativo</p>
                 </div>
 
@@ -108,7 +108,7 @@ const LoginPage = () => {
                 </form>
 
                 <div className="login-footer">
-                    <span className="version">Chat WiFi v1.0</span>
+                    <span className="version">Chat Repuestos v1.0</span>
                 </div>
             </div>
         </div>
