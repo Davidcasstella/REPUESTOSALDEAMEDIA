@@ -11,7 +11,7 @@ const Header = () => {
     return (
         <header className="top-header">
             <div className="header-logo-mobile">
-                <img src={logo} alt="CHAT REPUESTOS" className="header-logo-img" />
+                <img src={logo} alt="Chat Repuestos" className="header-logo-img" />
             </div>
 
             {/* Visual cyber status badges - desktop only */}

@@ -94,13 +94,14 @@ class ManualKnowledgeService {
         const documentId = `mk_${entryId}`;
         const fullText = `${title}\n\n${content}`;
         const chunks = this._chunkText(fullText);
+        const s3 = require('../config/s3');
 
         for (let i = 0; i < chunks.length; i++) {
             const chunkId = `mk_${entryId}_chunk_${i + 1}`;
 
-            // Save chunk text file
-            const chunkPath = path.join(CHUNKS_DIR, `${chunkId}.txt`);
-            await fs.writeFile(chunkPath, chunks[i], 'utf8');
+            // Save chunk text file to S3
+            const chunkKey = `knowledge-base/chunks/${chunkId}.txt`;
+            await s3.uploadFile(chunkKey, chunks[i], 'text/plain');
 
             // Generate and save embedding
             const embedding = await embeddingService.generateEmbedding(chunks[i]);
@@ -112,22 +113,13 @@ class ManualKnowledgeService {
     }
 
     /**
-     * Remove all chunk and embedding files for an entry.
+     * Remove all chunk and embedding files for an entry from S3.
      */
     async _removeChunksAndEmbeddings(entryId) {
-        const prefix = `mk_${entryId}_chunk_`;
-
-        // Remove chunk files
-        const chunkFiles = (await fs.readdir(CHUNKS_DIR)).filter(f => f.startsWith(prefix));
-        for (const file of chunkFiles) {
-            await fs.remove(path.join(CHUNKS_DIR, file));
-        }
-
-        // Remove embedding files
-        const embFiles = (await fs.readdir(EMBEDDINGS_DIR)).filter(f => f.startsWith(prefix));
-        for (const file of embFiles) {
-            await fs.remove(path.join(EMBEDDINGS_DIR, file));
-        }
+        const s3 = require('../config/s3');
+        // Remove S3 chunk files and S3 embedding files for this entry
+        await s3.deletePrefix(`knowledge-base/chunks/mk_${entryId}`);
+        await s3.deletePrefix(`knowledge-base/embeddings/mk_${entryId}`);
     }
 
     // ── CRUD Operations ────────────────────────────────────────────

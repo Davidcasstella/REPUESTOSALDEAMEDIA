@@ -16,7 +16,8 @@ class StagesService {
 
     async getAll() {
         try {
-            return await scanItems(TABLE);
+            const items = await scanItems(TABLE);
+            return items.map(item => ({ ...item, id: item.stageId }));
         } catch {
             return [];
         }

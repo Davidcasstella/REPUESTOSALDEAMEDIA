@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, WifiOff, ShieldCheck, QrCode, Info } from 'lucide-react';
+import { RefreshCw, WifiOff, ShieldCheck, QrCode, Info, Phone, Key } from 'lucide-react';
 import socket from '../services/socket';
 import api from '../services/api';
 
@@ -7,6 +7,13 @@ const WhatsAppPage = () => {
     const [qr, setQr] = useState(null);
     const [status, setStatus] = useState('disconnected'); // disconnected, connecting, waiting_qr, connected
     const [loading, setLoading] = useState(false);
+    
+    // New pairing code linking states
+    const [linkMode, setLinkMode] = useState('qr'); // qr, code
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [pairingCode, setPairingCode] = useState(null);
+    const [codeLoading, setCodeLoading] = useState(false);
+    const [codeError, setCodeError] = useState('');
 
     useEffect(() => {
         // Fetch current status on mount
@@ -15,6 +22,10 @@ const WhatsAppPage = () => {
                 const { data } = await api.get('/api/whatsapp/status');
                 if (data.status) setStatus(data.status);
                 if (data.qr) setQr(data.qr);
+                if (data.pairingCode) {
+                    setPairingCode(data.pairingCode);
+                    setLinkMode('code');
+                }
             } catch (error) {
                 console.error('Error al obtener estado inicial:', error);
             }
@@ -26,12 +37,25 @@ const WhatsAppPage = () => {
         socket.on('whatsapp-status', (data) => {
             if (data.status) setStatus(data.status);
             if (data.qr) setQr(data.qr);
+            if (data.pairingCode) {
+                setPairingCode(data.pairingCode);
+            } else if (data.qr) {
+                setPairingCode(null);
+            }
         });
 
         socket.on('whatsapp-update', (data) => {
             if (data.status) setStatus(data.status);
             if (data.qr) setQr(data.qr);
-            if (data.status === 'connected') setQr(null);
+            if (data.pairingCode) {
+                setPairingCode(data.pairingCode);
+            } else if (data.qr) {
+                setPairingCode(null);
+            }
+            if (data.status === 'connected') {
+                setQr(null);
+                setPairingCode(null);
+            }
         });
 
         return () => {
@@ -40,9 +64,9 @@ const WhatsAppPage = () => {
         };
     }, []);
 
-
     const handleRestart = async () => {
         setLoading(true);
+        setPairingCode(null);
         try {
             await api.post('/api/whatsapp/restart');
         } catch (error) {
@@ -55,12 +79,39 @@ const WhatsAppPage = () => {
     const handleClearSession = async () => {
         if (!window.confirm('¿Estás seguro de que quieres cerrar sesión y limpiar todas las credenciales?')) return;
         setLoading(true);
+        setPairingCode(null);
         try {
             await api.post('/api/whatsapp/clear-session');
         } catch (error) {
             console.error('Error al limpiar sesión:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRequestPairingCode = async (e) => {
+        if (e) e.preventDefault();
+        if (!phoneNumber.trim()) {
+            setCodeError('El número de teléfono es requerido');
+            return;
+        }
+
+        setCodeLoading(true);
+        setCodeError('');
+        try {
+            const { data } = await api.post('/api/whatsapp/request-pairing-code', {
+                phoneNumber: phoneNumber.trim()
+            });
+            if (data.success && data.code) {
+                setPairingCode(data.code);
+            } else {
+                setCodeError(data.message || 'Error al solicitar el código de emparejamiento');
+            }
+        } catch (error) {
+            console.error('Error al solicitar pairing code:', error);
+            setCodeError(error.response?.data?.message || 'Error al conectar con el servidor');
+        } finally {
+            setCodeLoading(false);
         }
     };
 
@@ -75,10 +126,12 @@ const WhatsAppPage = () => {
                 };
             case 'waiting_qr':
                 return {
-                    text: 'Escanea el Código QR',
-                    description: 'Abre WhatsApp en tu teléfono > Dispositivos vinculados > Vincular un dispositivo.',
+                    text: linkMode === 'code' ? 'Introduce el Código' : 'Escanea el Código QR',
+                    description: linkMode === 'code' 
+                        ? 'Vincula tu número ingresando el código de 8 dígitos en tu teléfono.' 
+                        : 'Abre WhatsApp en tu teléfono > Dispositivos vinculados > Vincular un dispositivo.',
                     color: 'warning',
-                    icon: <QrCode size={48} className="text-warning" />
+                    icon: linkMode === 'code' ? <Key size={48} className="text-warning" /> : <QrCode size={48} className="text-warning" />
                 };
             case 'connecting':
                 return {
@@ -106,7 +159,7 @@ const WhatsAppPage = () => {
             </header>
 
             <div className="whatsapp-grid">
-                {/* Columna Izquierda: QR y Estado */}
+                {/* Columna Izquierda: QR/Código y Estado */}
                 <article className="whatsapp-main-card premium-card" style={{ padding: '1.25rem' }}>
                     <div className="card-header">
                         <QrCode size={20} />
@@ -118,6 +171,27 @@ const WhatsAppPage = () => {
                         <span className="status-text">{info.text}</span>
                     </div>
 
+                    {status !== 'connected' && (
+                        <div className="link-mode-tabs">
+                            <button
+                                type="button"
+                                className={`link-tab-btn ${linkMode === 'qr' ? 'active' : ''}`}
+                                onClick={() => setLinkMode('qr')}
+                                disabled={status === 'connecting'}
+                            >
+                                <QrCode size={16} /> Código QR
+                            </button>
+                            <button
+                                type="button"
+                                className={`link-tab-btn ${linkMode === 'code' ? 'active' : ''}`}
+                                onClick={() => setLinkMode('code')}
+                                disabled={status === 'connecting'}
+                            >
+                                <Key size={16} /> Vincular con Código
+                            </button>
+                        </div>
+                    )}
+
                     <div className="qr-wrapper-section">
                         {status === 'connected' ? (
                             <div className="connected-display" style={{ textAlign: 'center', padding: '1rem' }}>
@@ -125,7 +199,7 @@ const WhatsAppPage = () => {
                                 <h2>¡Dispositivo Vinculado!</h2>
                                 <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>El motor de WhatsApp está operando correctamente.</p>
                             </div>
-                        ) : (
+                        ) : linkMode === 'qr' ? (
                             <div className="qr-scan-area">
                                 <div className="qr-frame">
                                     {qr ? (
@@ -139,6 +213,53 @@ const WhatsAppPage = () => {
                                 </div>
                                 <p className="qr-hint">Escanea este código desde la app de WhatsApp</p>
                             </div>
+                        ) : (
+                            <div className="pairing-code-section">
+                                {pairingCode ? (
+                                    <div className="pairing-code-display">
+                                        <span className="pairing-code-label">Código de Vinculación</span>
+                                        <span className="pairing-code-text">{pairingCode}</span>
+                                        <p className="qr-hint" style={{ marginTop: '0.5rem', maxWidth: '260px' }}>
+                                            Ingresa este código en tu teléfono móvil cuando se te solicite.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleRequestPairingCode} className="pairing-form">
+                                        <div className="phone-input-wrapper">
+                                            <label htmlFor="phoneNumber">Número de Teléfono (con código de país)</label>
+                                            <input
+                                                id="phoneNumber"
+                                                type="tel"
+                                                className="phone-input-field"
+                                                placeholder="Ej: 573028599105"
+                                                value={phoneNumber}
+                                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                                disabled={codeLoading}
+                                            />
+                                            <p className="qr-hint" style={{ textAlign: 'left', marginTop: '0.25rem' }}>
+                                                Ingresa el número internacional completo (sin espacios ni el signo +).
+                                            </p>
+                                        </div>
+                                        {codeError && <div className="code-error-msg">{codeError}</div>}
+                                        <button
+                                            type="submit"
+                                            className="btn-premium primary wide"
+                                            disabled={codeLoading || !phoneNumber.trim()}
+                                            style={{ marginTop: '0.5rem' }}
+                                        >
+                                            {codeLoading ? (
+                                                <>
+                                                    <RefreshCw className="spin" size={18} /> Generando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Phone size={18} /> Generar Código
+                                                </>
+                                            )}
+                                        </button>
+                                    </form>
+                                )}
+                            </div>
                         )}
                     </div>
 
@@ -149,7 +270,7 @@ const WhatsAppPage = () => {
                             disabled={loading || status === 'connected'}
                         >
                             <RefreshCw className={loading ? 'spin' : ''} size={18} />
-                            {loading ? 'Generando...' : 'Nuevo Código QR'}
+                            {loading ? 'Generando...' : linkMode === 'code' ? 'Reiniciar Proceso' : 'Nuevo Código QR'}
                         </button>
                         <button
                             className="btn-premium danger wide"
@@ -169,22 +290,45 @@ const WhatsAppPage = () => {
                             <h3>¿Cómo vincular?</h3>
                         </div>
                         <div className="steps-list">
-                            <div className="step-item">
-                                <div className="step-badge">1</div>
-                                <p>Abre <strong>WhatsApp</strong> en tu teléfono móvil.</p>
-                            </div>
-                            <div className="step-item">
-                                <div className="step-badge">2</div>
-                                <p>Ve a <strong>Configuración</strong> o <strong>Menú</strong>.</p>
-                            </div>
-                            <div className="step-item">
-                                <div className="step-badge">3</div>
-                                <p>Selecciona <strong>Dispositivos vinculados</strong>.</p>
-                            </div>
-                            <div className="step-item">
-                                <div className="step-badge">4</div>
-                                <p>Toca en <strong>Vincular un dispositivo</strong> y apunta al QR.</p>
-                            </div>
+                            {linkMode === 'qr' ? (
+                                <>
+                                    <div className="step-item">
+                                        <div className="step-badge">1</div>
+                                        <p>Abre <strong>WhatsApp</strong> en tu teléfono móvil.</p>
+                                    </div>
+                                    <div className="step-item">
+                                        <div className="step-badge">2</div>
+                                        <p>Ve a <strong>Configuración</strong> o <strong>Menú</strong>.</p>
+                                    </div>
+                                    <div className="step-item">
+                                        <div className="step-badge">3</div>
+                                        <p>Selecciona <strong>Dispositivos vinculados</strong>.</p>
+                                    </div>
+                                    <div className="step-item">
+                                        <div className="step-badge">4</div>
+                                        <p>Toca en <strong>Vincular un dispositivo</strong> y apunta al QR.</p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="step-item">
+                                        <div className="step-badge">1</div>
+                                        <p>Abre <strong>WhatsApp</strong> en tu teléfono móvil.</p>
+                                    </div>
+                                    <div className="step-item">
+                                        <div className="step-badge">2</div>
+                                        <p>Ve a <strong>Dispositivos vinculados</strong> en el menú.</p>
+                                    </div>
+                                    <div className="step-item">
+                                        <div className="step-badge">3</div>
+                                        <p>Toca en <strong>Vincular un dispositivo</strong>.</p>
+                                    </div>
+                                    <div className="step-item">
+                                        <div className="step-badge">4</div>
+                                        <p>Selecciona <strong>Vincular con el número de teléfono</strong> abajo e introduce el código de 8 dígitos.</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </section>
 

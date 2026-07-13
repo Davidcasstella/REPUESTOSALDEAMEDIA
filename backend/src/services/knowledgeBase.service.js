@@ -90,9 +90,10 @@ class KnowledgeBaseService {
      */
     async extractTextFromBuffer(buffer, type) {
         if (type === 'pdf') {
-            const parser = new PDFParse();
-            const data = await parser.parseBuffer(buffer);
-            return data.text;
+            const parser = new PDFParse({ data: buffer });
+            const result = await parser.getText();
+            await parser.destroy();
+            return result.text;
         } else {
             return buffer.toString('utf8');
         }
@@ -132,9 +133,9 @@ class KnowledgeBaseService {
     /**
      * Search the knowledge base.
      */
-    async searchKnowledge(query) {
+    async searchKnowledge(query, stageId = null) {
         try {
-            const results = await retriever.search(query, 5);
+            const results = await retriever.search(query, 5, stageId);
             if (results.length === 0) return null;
 
             const relevant = results.filter(r => r.score > 0.02);

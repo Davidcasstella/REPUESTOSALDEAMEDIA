@@ -35,6 +35,7 @@ class ChatHistoryService {
             for (const item of items) {
                 this._cache[item.jid] = {
                     pushName: item.pushName,
+                    nameIsCustom: item.nameIsCustom || false,
                     messages: item.messages || []
                 };
             }
@@ -51,6 +52,7 @@ class ChatHistoryService {
         await putItem(TABLE, {
             jid,
             pushName: data.pushName,
+            nameIsCustom: data.nameIsCustom || false,
             messages: data.messages
         });
     }
@@ -73,12 +75,13 @@ class ChatHistoryService {
         if (!this._cache[jid]) {
             this._cache[jid] = {
                 pushName: pushName || jid.replace('@s.whatsapp.net', ''),
+                nameIsCustom: false,
                 messages: []
             };
         }
 
-        // Update pushName if provided
-        if (pushName && !fromMe) {
+        // Update pushName if provided and name is not custom
+        if (pushName && !fromMe && !this._cache[jid].nameIsCustom) {
             const isGroup = jid.includes('@g.us');
             if (!isGroup || !this._cache[jid].pushName || this._cache[jid].pushName === jid.replace('@g.us', '')) {
                 this._cache[jid].pushName = pushName;
@@ -122,6 +125,24 @@ class ChatHistoryService {
         }
 
         this._persist(jid).catch(() => {});
+    }
+
+    /**
+     * Update the pushName for a conversation (and set nameIsCustom to true).
+     */
+    async updatePushName(rawJid, newName) {
+        await this._loadCache();
+        const jid = this._normalizeJid(rawJid);
+
+        if (!this._cache[jid]) {
+            this._cache[jid] = { pushName: newName, nameIsCustom: true, messages: [] };
+        } else {
+            this._cache[jid].pushName = newName;
+            this._cache[jid].nameIsCustom = true;
+        }
+
+        await this._persist(jid);
+        return this._cache[jid];
     }
 
     /**

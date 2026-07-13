@@ -55,7 +55,7 @@ const LoginPage = () => {
         <div className="login-wrapper">
             <div className="login-card premium-card glow-blue">
                 <div className="login-header">
-                    <img src={logo} alt="CHAT REPUESTOS Logo" className="login-logo-img" />
+                    <img src={logo} alt="Chat Repuestos Logo" className="login-logo-img" />
                     <p>Login Administrativo</p>
                 </div>
 

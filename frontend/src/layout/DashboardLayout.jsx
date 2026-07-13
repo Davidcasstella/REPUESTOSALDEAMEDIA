@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, LogOut, Zap, QrCode, BrainCircuit, BookOpen, BellRing, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, LogOut, Zap, QrCode, BrainCircuit, BookOpen, BellRing, BarChart3, MessageSquare, Sparkles, Send, Target, BellDot } from 'lucide-react';
 import api from '../services/api';
 import logo from '../Logo/repuestos-logo.jpeg';
 import './Layout.css';
@@ -20,7 +20,7 @@ const DashboardLayout = () => {
         <div className="layout-container">
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <img src={logo} alt="CHAT REPUESTOS Logo" className="logo-img-sidebar" />
+                    <img src={logo} alt="Chat Repuestos Logo" className="logo-img-sidebar" />
                 </div>
 
                 <nav className="sidebar-nav">
@@ -58,9 +58,34 @@ const DashboardLayout = () => {
                         <span>Automatizaciones</span>
                     </NavLink>
 
+                    <NavLink to="/guide-rules" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <Sparkles size={18} />
+                        <span>Reglas de Guía</span>
+                    </NavLink>
+
                     <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                         <BarChart3 size={18} />
                         <span>Métricas</span>
+                    </NavLink>
+
+                    <NavLink to="/quick-replies" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <MessageSquare size={18} />
+                        <span>Respuestas Rápidas</span>
+                    </NavLink>
+
+                    <NavLink to="/mass-campaigns" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <Send size={18} />
+                        <span>Mensajes Masivos</span>
+                    </NavLink>
+
+                    <NavLink to="/leads" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <Target size={18} />
+                        <span>Leads Interesados</span>
+                    </NavLink>
+
+                    <NavLink to="/alert-config" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <BellDot size={18} />
+                        <span>Alertas</span>
                     </NavLink>
 
                     <button onClick={handleLogout} className="nav-item logout-nav-link" style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
@@ -123,6 +148,21 @@ const DashboardLayout = () => {
                 <NavLink to="/analytics" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
                     <BarChart3 size={20} />
                     <span>Métricas</span>
+                </NavLink>
+
+                <NavLink to="/quick-replies" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                    <MessageSquare size={20} />
+                    <span>Respuestas</span>
+                </NavLink>
+
+                <NavLink to="/mass-campaigns" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                    <Send size={20} />
+                    <span>Masivos</span>
+                </NavLink>
+
+                <NavLink to="/leads" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                    <Target size={20} />
+                    <span>Leads</span>
                 </NavLink>
 
                 <button onClick={handleLogout} className="mobile-nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>

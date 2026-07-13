@@ -121,16 +121,23 @@ def is_title_line(columns):
     return all_text in ('TOYOTA', '') or 'MARZO' in all_text
 
 
-def parse_pdf(pdf_path):
+def parse_pdf(pdf_path, page_start=None, page_end=None):
     """
     Main parsing function. Extracts all products from the PDF catalog.
+    Supports optional page range for batch processing.
     Returns a list of product dictionaries.
     """
     products = []
     current_product = None
 
     with pdfplumber.open(pdf_path) as pdf:
-        for page_num, page in enumerate(pdf.pages):
+        total_pages = len(pdf.pages)
+
+        start = page_start if page_start is not None else 0
+        end = min(page_end + 1, total_pages) if page_end is not None else total_pages
+
+        for page_num in range(start, end):
+            page = pdf.pages[page_num]
             words = page.extract_words()
             if not words:
                 continue
@@ -186,6 +193,9 @@ def parse_pdf(pdf_path):
                     if price_part and not current_product['precio_raw']:
                         current_product['precio_raw'] = price_part
 
+            # Progress to stderr for real-time tracking
+            print(f"PROGRESS:{page_num - start + 1}/{end - start}", file=sys.stderr, flush=True)
+
         # Don't forget the last product
         if current_product and current_product['codigo']:
             products.append(finalize_product(current_product))
@@ -216,15 +226,40 @@ def finalize_product(product):
     }
 
 
+def get_page_count(pdf_path):
+    """Return the total number of pages without parsing content."""
+    with pdfplumber.open(pdf_path) as pdf:
+        return len(pdf.pages)
+
+
 def main():
     if len(sys.argv) < 2:
-        print(json.dumps({'error': 'Usage: python parse_catalog_pdf.py <pdf_path>'}))
+        print(json.dumps({'error': 'Usage: python parse_catalog_pdf.py <pdf_path> [--page-range START END] [--page-count]'}))
         sys.exit(1)
 
     pdf_path = sys.argv[1]
 
+    # --page-count mode: just return the number of pages
+    if '--page-count' in sys.argv:
+        try:
+            count = get_page_count(pdf_path)
+            print(json.dumps({'pageCount': count}))
+        except Exception as e:
+            print(json.dumps({'error': str(e)}))
+            sys.exit(1)
+        return
+
+    # Parse --page-range arguments
+    page_start = None
+    page_end = None
+    if '--page-range' in sys.argv:
+        idx = sys.argv.index('--page-range')
+        if idx + 2 < len(sys.argv):
+            page_start = int(sys.argv[idx + 1])
+            page_end = int(sys.argv[idx + 2])
+
     try:
-        products = parse_pdf(pdf_path)
+        products = parse_pdf(pdf_path, page_start, page_end)
         print(json.dumps(products, ensure_ascii=False))
     except Exception as e:
         print(json.dumps({'error': str(e)}))
@@ -233,3 +268,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

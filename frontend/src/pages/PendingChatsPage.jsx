@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import {
     AlertTriangle, RefreshCw, Search, UserCheck, Power,
-    Clock, CheckCircle, AlertCircle, Settings2, Save, Phone
+    Clock, CheckCircle, AlertCircle, Settings2, Save, Phone, Edit2, Check, X
 } from 'lucide-react';
+import Avatar from '../components/ui/Avatar';
 
 const PendingChatsPage = () => {
     // ── Config ──────────────────────────────────────────────────────────
@@ -16,6 +17,11 @@ const PendingChatsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [actionInProgress, setActionInProgress] = useState(null);
     const [toast, setToast] = useState(null);
+
+    // Editing states for contact name
+    const [editingJid, setEditingJid] = useState(null);
+    const [editNameValue, setEditNameValue] = useState('');
+    const [savingName, setSavingName] = useState(false);
 
     // ── Load ────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -101,6 +107,22 @@ const PendingChatsPage = () => {
             showToast('error', 'Error al marcar como atendido');
         } finally {
             setActionInProgress(null);
+        }
+    };
+
+    const handleSaveName = async (jid) => {
+        if (!editNameValue.trim() || savingName) return;
+        const newName = editNameValue.trim();
+        setSavingName(true);
+        try {
+            await api.put(`/api/chat/conversations/${encodeURIComponent(jid)}/name`, { name: newName });
+            setPending(prev => prev.map(p => p.jid === jid ? { ...p, displayName: newName } : p));
+            setEditingJid(null);
+            showToast('success', 'Nombre de contacto actualizado');
+        } catch (err) {
+            showToast('error', 'Error al guardar nombre');
+        } finally {
+            setSavingName(false);
         }
     };
 
@@ -253,11 +275,89 @@ const PendingChatsPage = () => {
                         >
                             {/* Info */}
                             <div className="wa-user-info">
-                                <div className={`wa-user-avatar ${item.attended ? 'pc-avatar-attended' : 'pc-avatar-pending'}`}>
-                                    {item.attended ? '✓' : '!'}
-                                </div>
+                                <Avatar
+                                    jid={item.jid}
+                                    name={item.displayName}
+                                    isGroup={item.jid?.includes('@g.us')}
+                                    className={`wa-user-avatar ${item.attended ? 'pc-avatar-attended' : 'pc-avatar-pending'}`}
+                                    size={30}
+                                />
                                 <div className="wa-user-details">
-                                    <span className="wa-user-name">{item.displayName}</span>
+                                    {editingJid === item.jid ? (
+                                        <div className="wa-user-name-edit-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '2px 0' }}>
+                                            <input
+                                                type="text"
+                                                className="wa-user-name-input"
+                                                value={editNameValue}
+                                                onChange={e => setEditNameValue(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') handleSaveName(item.jid);
+                                                    if (e.key === 'Escape') setEditingJid(null);
+                                                }}
+                                                style={{
+                                                    background: 'rgba(255, 255, 255, 0.1)',
+                                                    border: '1px solid rgba(26, 26, 26, 0.2)',
+                                                    borderRadius: '4px',
+                                                    color: '#1a1a1a',
+                                                    padding: '2px 6px',
+                                                    fontSize: '0.9rem',
+                                                    outline: 'none',
+                                                    width: '150px'
+                                                }}
+                                                disabled={savingName}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={() => handleSaveName(item.jid)}
+                                                style={{ background: 'none', border: 'none', color: '#00aa55', cursor: 'pointer', padding: '2px' }}
+                                                disabled={savingName}
+                                                title="Guardar"
+                                            >
+                                                <Check size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingJid(null)}
+                                                style={{ background: 'none', border: 'none', color: '#ff3333', cursor: 'pointer', padding: '2px' }}
+                                                disabled={savingName}
+                                                title="Cancelar"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span 
+                                                className="wa-user-name" 
+                                                onClick={() => {
+                                                    setEditNameValue(item.displayName);
+                                                    setEditingJid(item.jid);
+                                                }}
+                                                style={{ cursor: 'pointer' }}
+                                                title="Editar nombre"
+                                            >
+                                                {item.displayName}
+                                            </span>
+                                            <button
+                                                onClick={() => {
+                                                    setEditNameValue(item.displayName);
+                                                    setEditingJid(item.jid);
+                                                }}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: 'rgba(26, 26, 26, 0.4)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    padding: '2px',
+                                                    borderRadius: '4px'
+                                                }}
+                                                title="Editar nombre"
+                                            >
+                                                <Edit2 size={11} />
+                                            </button>
+                                        </div>
+                                    )}
                                     <span className="wa-user-msg pc-last-msg">
                                         "{item.lastMessage || 'Sin mensaje'}"
                                     </span>

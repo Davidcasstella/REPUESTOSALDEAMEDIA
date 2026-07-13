@@ -539,9 +539,13 @@
     justify-content: flex-end;
     align-items: center;
     font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.45);
+    color: #8696a0;
     margin-top: 2px;
     gap: 2px;
+}
+
+.chat-bubble-out .chat-bubble-time {
+    color: #667085;
 }
 
 .chat-bubble-check {
@@ -799,3 +803,111 @@
         padding: 12px 14px;
     }
 }
+
+/* ── Quick Replies Autocomplete Dropdown ── */
+.chat-qr-dropdown {
+    position: absolute;
+    bottom: 50px; /* Right above input bar */
+    left: 10px;
+    right: 10px;
+    background: #ffffff;
+    border: 1px solid #D9E2EC;
+    border-radius: 12px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1), 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0;
+}
+
+.chat-qr-item {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid #F0F4F8;
+    text-align: left;
+}
+
+.chat-qr-item:last-child {
+    border-bottom: none;
+}
+
+.chat-qr-item-active, .chat-qr-item:hover {
+    background: #e8eef4;
+}
+
+.chat-qr-shortcut-badge {
+    font-family: monospace;
+    font-weight: 700;
+    color: #1a1a1a;
+    font-size: 0.85rem;
+    background: rgba(26,26,26,0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+}
+
+.chat-qr-name {
+    font-size: 0.72rem;
+    color: #718096;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.chat-qr-preview {
+    font-size: 0.75rem;
+    color: #4a5568;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 4px;
+}
+
+.conv-edit-icon-hover {
+    display: none;
+    color: #8696a0;
+    margin-left: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.conv-item:hover .conv-edit-icon-hover {
+    display: inline-flex;
+}
+
+.conv-edit-icon-hover:hover {
+    color: #3182ce;
+}
+
+/* ── WhatsApp Disconnection Warning Banner ── */
+.chat-status-warning-banner {
+    background: #fef2f2;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 8px 12px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.chat-status-warning-banner a {
+    color: #3182ce;
+    text-decoration: underline;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.chat-status-warning-banner a:hover {
+    color: #2b6cb0;
+}
+

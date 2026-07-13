@@ -6,9 +6,9 @@ module.exports = {
   whatsapp: {
     sessionPath: process.env.SESSION_NAME || 'wifi-session',
     browser: [
+      'Windows',
       process.env.BROWSER_NAME || 'ChatWiFi',
-      'Chrome',
-      process.env.BROWSER_VERSION || '1.0.0'
+      '1.0.0'
     ]
   },
   logs: {

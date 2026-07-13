@@ -14,6 +14,8 @@ const DEFAULT_CONFIG = {
     videoFilePath: null,   // absolute path to .mp4 file on disk
     videoEnabled: false,   // toggle video sending independently
     cooldownHours: 24,
+    campaignContextHours: 24, // hours after which a campaign context is considered expired
+    greetMode: 'none',     // can be 'none' | 'whatsapp' | 'dashboard'
     updatedAt: null
 };
 
@@ -40,7 +42,12 @@ class WelcomeAutomationService {
     // ── Config helpers ────────────────────────────────────────────────────
 
     async getConfig() {
-        return fs.readJson(CONFIG_PATH);
+        const config = await fs.readJson(CONFIG_PATH);
+        return {
+            greetMode: 'none',
+            campaignContextHours: 24,
+            ...config
+        };
     }
 
     async saveConfig(updates) {
@@ -95,16 +102,28 @@ class WelcomeAutomationService {
     async resetUserState(jid) {
         const states = await this._readStates();
         if (states[jid]) {
-            // Keep the user entry but clear welcome timestamp
+            // Keep the user entry but clear welcome timestamp so welcome re-fires
             delete states[jid].lastWelcomeSentAt;
             // Also re-enable AI when a full reset is requested
             states[jid].aiEnabled = true;
-
-            // Optional: try to clear pending fallback from aiFallback if needed
-            // Since this runs in welcomeAutomation, and we just enabled AI, 
-            // the AI will answer next time anyway.
         }
         await this._writeStates(states);
+
+        // Also reset lead priority in DynamoDB so new messages are evaluated correctly
+        try {
+            const leadScoringService = require('./leadScoring.service');
+            await leadScoringService.resetLeadPriority(jid);
+        } catch (err) {
+            console.warn('⚠️ Error resetting lead priority on user state reset:', err.message);
+        }
+
+        // Clear campaign context so welcome flow is not blocked by stale campaign data
+        try {
+            const campaignsService = require('./campaigns.service');
+            await campaignsService.deleteCampaignContext(jid);
+        } catch (err) {
+            console.warn('⚠️ Error clearing campaign context on user state reset:', err.message);
+        }
     }
 
     async deleteUserState(jid) {
@@ -141,6 +160,17 @@ class WelcomeAutomationService {
         states[jid] = { ...existing, aiEnabled: Boolean(enabled) };
         await this._writeStates(states);
         console.log(`🤖 AI ${enabled ? 'enabled' : 'disabled'} for ${jid}`);
+
+        // If enabling AI, reset lead priority in DynamoDB so the bot doesn't immediately deactivate again
+        if (enabled) {
+            try {
+                const leadScoringService = require('./leadScoring.service');
+                await leadScoringService.resetLeadPriority(jid);
+            } catch (err) {
+                console.warn('⚠️ Error resetting lead priority on setUserAI:', err.message);
+            }
+        }
+
         return states[jid];
     }
 
@@ -211,11 +241,36 @@ class WelcomeAutomationService {
      * @param {object} io - Socket.io instance to emit to dashboard
      * @returns {Promise<boolean>} true if the welcome was actually sent, false otherwise
      */
-    async runIfNeeded(sock, jid, chatHistoryService, io) {
+    async runIfNeeded(sock, jid, chatHistoryService, io, whatsappPushName) {
         if (!sock) return false;
 
         const config = await this.getConfig();
         if (!config.isEnabled) return false;
+
+        // Skip welcome only if they RECENTLY received a campaign (within campaignContextHours)
+        try {
+            const campaignsService = require('./campaigns.service');
+            const campaignCtx = await campaignsService.getCampaignContextForJid(jid);
+            if (campaignCtx && campaignCtx.sentAt) {
+                const campaignAgeHours = (Date.now() - new Date(campaignCtx.sentAt).getTime()) / 3600000;
+                if (campaignAgeHours < (config.campaignContextHours || 24)) {
+                    console.log(`🎯 Recent campaign context found for ${jid} (${campaignAgeHours.toFixed(1)}h ago) — skipping welcome flow`);
+                    return false;
+                }
+                console.log(`📋 Expired campaign context for ${jid} (${campaignAgeHours.toFixed(1)}h ago, limit: ${config.campaignContextHours || 24}h) — proceeding with welcome`);
+            }
+        } catch (campaignErr) {
+            console.warn('⚠️ Error checking campaign context in welcome flow:', campaignErr.message);
+        }
+
+        const hasAudio = !!(config.audioFilePath && fs.existsSync(config.audioFilePath));
+        const hasText = !!(config.messageText && config.messageText.trim());
+        const hasVideo = !!(config.videoEnabled && config.videoFilePath && fs.existsSync(config.videoFilePath));
+
+        if (!hasAudio && !hasText && !hasVideo) {
+            return false;
+        }
+
         if (!await this._shouldSend(jid, config.cooldownHours)) return false;
 
         console.log(`🔔 Welcome 24H: sending welcome sequence to ${jid}`);
@@ -252,6 +307,18 @@ class WelcomeAutomationService {
             const RESPONSE_DELAY = parseInt(process.env.RESPONSE_DELAY, 10) || 2000;
             const messageParts = config.messageText.split('---MSG---').map(p => p.trim()).filter(p => p.length > 0);
 
+            // Resolve greeting name based on configured mode
+            let greetingName = '';
+            if (config.greetMode === 'whatsapp') {
+                greetingName = whatsappPushName || '';
+            } else if (config.greetMode === 'dashboard') {
+                if (chatHistoryService) {
+                    const conv = await chatHistoryService.getMessages(jid);
+                    greetingName = conv.pushName || '';
+                }
+            }
+            greetingName = greetingName.trim();
+
             for (let i = 0; i < messageParts.length; i++) {
                 try {
                     // Show typing indicator before each message
@@ -268,12 +335,24 @@ class WelcomeAutomationService {
                         await new Promise(resolve => setTimeout(resolve, Math.floor(RESPONSE_DELAY * 0.5)));
                     }
 
+                    // Replace placeholders and clean spaces if name is empty
+                    let resolvedText = messageParts[i];
+                    if (greetingName) {
+                        resolvedText = resolvedText.replace(/\{nombre\}/gi, greetingName).replace(/\{name\}/gi, greetingName);
+                    } else {
+                        resolvedText = resolvedText.replace(/\{nombre\}/gi, '').replace(/\{name\}/gi, '');
+                        resolvedText = resolvedText.replace(/\s{2,}/g, ' ')
+                                                   .replace(/\s+([.,!?;])/g, '$1')
+                                                   .replace(/\s+👋/g, ' 👋')
+                                                   .trim();
+                    }
+
                     this.markBotSent(jid);
-                    await sock.sendMessage(jid, { text: messageParts[i] });
+                    await sock.sendMessage(jid, { text: resolvedText });
                     console.log(`📝 Welcome message ${i + 1}/${messageParts.length} sent to ${jid}`);
                     if (chatHistoryService && io) {
                         try {
-                            const savedMsg = await chatHistoryService.addMessage(jid, messageParts[i], true, 'System', 'system');
+                            const savedMsg = await chatHistoryService.addMessage(jid, resolvedText, true, 'System', 'system');
                             io.emit('chat:message', { jid, message: savedMsg });
                         } catch (e) { console.error('Error saving welcome text to history:', e.message); }
                     }
@@ -310,6 +389,14 @@ class WelcomeAutomationService {
 
         // 4. Persist timestamp — only after successful completion
         await this.updateUserState(jid);
+
+        // 5. Clean up stale campaign context now that welcome has been sent
+        try {
+            const campaignsService = require('./campaigns.service');
+            await campaignsService.deleteCampaignContext(jid);
+        } catch (err) {
+            console.warn('⚠️ Error cleaning campaign context after welcome:', err.message);
+        }
 
         return true;
     }
@@ -384,12 +471,15 @@ class WelcomeAutomationService {
 
     // ── Enriched user list for dashboard ──────────────────────────────────
 
-    /** Returns all users with computed cooldown status for the dashboard. */
     async getUsersForDashboard() {
+        const chatHistoryService = require('./chatHistory.service');
         const states = await this._readStates();
         const config = await this.getConfig();
         const now = Date.now();
         const cooldownMs = (config.cooldownHours || 24) * 3600000;
+
+        // Load chat history cache to get custom contact names
+        await chatHistoryService._loadCache();
 
         return Object.entries(states).map(([jid, state]) => {
             const lastWelcome = state.lastWelcomeSentAt
@@ -399,9 +489,12 @@ class WelcomeAutomationService {
                 ? (now - lastWelcome) >= cooldownMs
                 : true;
 
+            const chat = chatHistoryService._cache[jid];
+            const displayName = chat?.pushName || jid.replace('@s.whatsapp.net', '').replace('@g.us', ' (grupo)');
+
             return {
                 jid,
-                displayName: jid.replace('@s.whatsapp.net', '').replace('@g.us', ' (grupo)'),
+                displayName,
                 lastMessageText: state.lastMessageText || null,
                 lastMessageAt: state.lastMessageAt || null,
                 lastWelcomeSentAt: state.lastWelcomeSentAt || null,

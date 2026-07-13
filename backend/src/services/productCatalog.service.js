@@ -2,44 +2,60 @@
  * Product Catalog Service — DynamoDB Version
  * 
  * Business logic for managing products extracted from PDF catalogs.
- * Uses DynamoDB table "chatwifi-products" for storage.
- * Provides exact code lookup + fuzzy/semantic search for the chatbot.
+ * Uses DynamoDB table: chatwifi-products (partition key: codigo)
+ * Provides search capabilities for the chatbot.
+ *
+ * Performance: Uses an in-memory cache (60 s TTL) to avoid repeated
+ * full DynamoDB scans on every search/stats call.
  */
 
-const {
-    PutCommand,
-    GetCommand,
-    ScanCommand,
-    BatchWriteCommand,
-    QueryCommand,
-    DeleteCommand
-} = require('@aws-sdk/lib-dynamodb');
-const { docClient } = require('../config/aws');
+const { putItem, getItem, scanItems, batchPutItems, deleteItem } = require('../config/dynamodb');
+const { MARGIN_PERCENT, CHATBOT_PERCENT, IVA_PERCENT } = require('../config/pricingConfig');
+const productNormalizer = require('./productNormalizer');
 
-const TABLE_NAME = 'chatwifi-products';
+const TABLE = 'products';
 
-// Price markup: IVA 19% + 30% margin (base × 1.19 × 1.30)
-const PRICE_MARKUP = 1.19 * 1.30;
+// ── In-memory scan cache ─────────────────────────────────────────────────────
+// Avoids downloading 8 000+ DynamoDB items on every search/stats call.
+// TTL: 10 minutes as safety fallback — in practice the cache is invalidated
+// immediately on any write (saveProducts / clearAll / deleteBySource), so it
+// effectively persists until something actually changes.
+const CACHE_TTL_MS     = 10 * 60_000; // 10 min
+const STATS_CACHE_TTL  =  5 * 60_000; //  5 min
+let _scanCache  = null; // { items: Array, expiresAt: number }
+let _statsCache = null; // { stats: Object, stageId: string|null, expiresAt: number }
+
+/**
+ * Return all product items, using cache when still fresh.
+ * @returns {Promise<Array>}
+ */
+async function cachedScan() {
+    const now = Date.now();
+    if (_scanCache && _scanCache.expiresAt > now) {
+        return _scanCache.items;
+    }
+    const items = await scanItems(TABLE);
+    _scanCache = { items, expiresAt: now + CACHE_TTL_MS };
+    return items;
+}
+
+/** Invalidate all caches (call after any write operation). */
+function invalidateCache() {
+    _scanCache = null;
+    _statsCache = null;
+}
 
 class ProductCatalogService {
-
-    // ================================================================
-    // DATA WRITE OPERATIONS
-    // ================================================================
-
     /**
      * Save an array of products to DynamoDB (upsert by codigo).
-     * Uses BatchWrite for efficiency (25 items per batch).
      * @param {Array} products - Array of product objects from PDF parser
      * @param {string} catalogSource - Original filename for tracking
      * @returns {Object} - { inserted, updated, errors }
      */
-    async saveProducts(products, catalogSource = null) {
+    async saveProducts(products, catalogSource = null, stageId = 'stage_general') {
         let inserted = 0;
         let errors = 0;
-        const now = new Date().toISOString();
 
-        // Filter out products without a code
         const validProducts = products.filter(p => {
             if (!p.codigo) {
                 errors++;
@@ -48,246 +64,331 @@ class ProductCatalogService {
             return true;
         });
 
-        // Build DynamoDB items
-        const items = validProducts.map(p => ({
-            codigo: p.codigo.trim(),
-            ref_oem: p.ref_oem || null,
-            ref_fabrica: p.ref_fabrica || null,
-            descripcion: p.descripcion || null,
-            marca: p.marca || 'SIN_MARCA',
-            precio_base: p.precio_base || 0,
-            catalog_source: catalogSource,
-            // Pre-computed lowercase search field for fast fuzzy matching
-            searchText: this._buildSearchText(p),
-            created_at: now,
-            updated_at: now
-        }));
+        // Normalize and prepare items for batch write
+        const items = validProducts.map(p => {
+            // Use normalizer if product doesn't already have _code_variants
+            const normalized = p._code_variants ? p : productNormalizer.normalizeProduct(p);
+            return {
+                ...normalized,
+                catalog_source: catalogSource,
+                // Store stageId so products are isolated per stage
+                stage_id: stageId || 'stage_general',
+                created_at: p.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+        });
 
-        // BatchWrite in chunks of 25 (DynamoDB limit)
-        const batches = [];
-        for (let i = 0; i < items.length; i += 25) {
-            batches.push(items.slice(i, i + 25));
-        }
-
-        for (const batch of batches) {
-            try {
-                const requests = batch.map(item => ({
-                    PutRequest: { Item: item }
-                }));
-
-                await docClient.send(new BatchWriteCommand({
-                    RequestItems: {
-                        [TABLE_NAME]: requests
-                    }
-                }));
-
-                inserted += batch.length;
-            } catch (err) {
-                console.error(`❌ Batch write error: ${err.message}`);
-                errors += batch.length;
+        try {
+            await batchPutItems(TABLE, items);
+            inserted = items.length;
+        } catch (err) {
+            console.error(`❌ Batch write error: ${err.message}`);
+            // Fallback: write one by one
+            for (const item of items) {
+                try {
+                    await putItem(TABLE, item);
+                    inserted++;
+                } catch (e) {
+                    console.error(`❌ Error saving product ${item.codigo}: ${e.message}`);
+                    errors++;
+                }
             }
         }
 
-        console.log(`📦 Catalog saved to DynamoDB: ${inserted} products, ${errors} errors`);
+        // Invalidate cache so next read reflects the new products
+        invalidateCache();
+        console.log(`📦 Catalog saved: ${inserted} products, ${errors} errors`);
         return { inserted, updated: 0, errors, total: products.length };
     }
 
     /**
-     * Delete all products from the catalog.
-     * Scans all items and deletes them in batches.
-     * @returns {number} - Number of deleted items
+     * Search products by reference (OEM or internal code).
+     * @param {string} query - Search query
+     * @returns {Array} - Matching products with calculated final price
      */
-    async clearAll() {
+    async searchByReference(query, stageId = null) {
+        const cleanQuery = query.trim().toLowerCase();
+        const normalizedQuery = productNormalizer.normalizeQuery(query);
+        
         try {
-            // Scan all codes
-            const allItems = await this._scanAll({
-                ProjectionExpression: 'codigo'
-            });
+            // Use cache to avoid repeated full DynamoDB scans
+            let allItems = await cachedScan();
+            // Filter by allowed stages
+            const allowedStages = await this._getAllowedStages(stageId);
+            allItems = allItems.filter(i => allowedStages.includes(i.stage_id || 'stage_general'));
+            
+            // Level 1: Exact code match
+            const exactCode = [];
+            // Level 2: Code variant match
+            const variantMatch = [];
+            // Level 3: Partial code match
+            const partial = [];
 
-            if (allItems.length === 0) return 0;
+            for (const item of allItems) {
+                const codigo = (item._codigo_lower || item.codigo || '').toLowerCase();
+                const codigoNorm = (item._codigo_normalized || '').toLowerCase();
+                const refOem = (item._ref_oem_lower || item.ref_oem || '').toLowerCase();
+                const refFab = (item._ref_fabrica_lower || item.ref_fabrica || '').toLowerCase();
+                const codeVariants = item._code_variants || [];
 
-            // Delete in batches of 25
-            const batches = [];
-            for (let i = 0; i < allItems.length; i += 25) {
-                batches.push(allItems.slice(i, i + 25));
+                // Level 1: Exact match on primary codes
+                if (codigo === cleanQuery || refOem === cleanQuery || refFab === cleanQuery) {
+                    exactCode.push(item);
+                }
+                // Level 2: Match against normalized code or variants
+                else if (
+                    codigoNorm === normalizedQuery ||
+                    codeVariants.some(v => v.toLowerCase() === cleanQuery || v.toLowerCase() === normalizedQuery)
+                ) {
+                    variantMatch.push(item);
+                }
+                // Level 3: Partial match
+                else if (
+                    codigo.includes(cleanQuery) || cleanQuery.includes(codigo) ||
+                    refOem.includes(cleanQuery) || refFab.includes(cleanQuery) ||
+                    codigoNorm.includes(normalizedQuery)
+                ) {
+                    partial.push(item);
+                }
             }
 
-            for (const batch of batches) {
-                const requests = batch.map(item => ({
-                    DeleteRequest: { Key: { codigo: item.codigo } }
-                }));
-
-                await docClient.send(new BatchWriteCommand({
-                    RequestItems: {
-                        [TABLE_NAME]: requests
-                    }
-                }));
-            }
-
-            console.log(`🗑️ Cleared ${allItems.length} products from DynamoDB catalog`);
-            return allItems.length;
+            const results = [...exactCode, ...variantMatch, ...partial].slice(0, 10);
+            return results.map(row => this._addFinalPrice(row));
         } catch (err) {
-            console.error(`❌ Error clearing catalog: ${err.message}`);
-            return 0;
+            console.error(`❌ Search error: ${err.message}`);
+            return [];
         }
     }
 
-    // ================================================================
-    // SEARCH OPERATIONS
-    // ================================================================
-
     /**
-     * Get a single product by its exact internal code (e.g. "TOI-03-152").
-     * Direct GetItem — the fastest possible DynamoDB operation.
+     * Get a single product by its exact internal code.
      * @param {string} code - Internal product code
      * @returns {Object|null}
      */
-    async getByCode(code) {
+    async getByCode(code, stageId = null) {
         try {
-            const result = await docClient.send(new GetCommand({
-                TableName: TABLE_NAME,
-                Key: { codigo: code.trim().toUpperCase() }
-            }));
-
-            if (!result.Item) {
-                // Try case-insensitive scan (codes might be stored as-is from PDF)
-                const items = await this._scanAll({
-                    FilterExpression: 'begins_with(codigo, :prefix)',
-                    ExpressionAttributeValues: {
-                        ':prefix': code.trim().substring(0, 3).toUpperCase()
-                    },
-                    Limit: 50
-                });
-
-                const match = items.find(i =>
-                    i.codigo.toUpperCase() === code.trim().toUpperCase()
-                );
-
-                if (!match) return null;
-                return this._addFinalPrice(match);
-            }
-
-            return this._addFinalPrice(result.Item);
-        } catch (err) {
-            console.error(`❌ getByCode error: ${err.message}`);
+            const item = await getItem(TABLE, { codigo: code.trim().toUpperCase() });
+            if (!item) return null;
+            // Validate the product belongs to the allowed stages
+            const allowedStages = await this._getAllowedStages(stageId);
+            if (!allowedStages.includes(item.stage_id || 'stage_general')) return null;
+            return this._addFinalPrice(item);
+        } catch (_) {
             return null;
         }
     }
 
     /**
-     * Search products by reference (OEM, internal code, or factory ref).
-     * Step 1: Try exact GetItem by codigo.
-     * Step 2: Scan with contains filter on all reference fields.
-     * @param {string} query - Search query
-     * @returns {Array} - Matching products with calculated final price
-     */
-    async searchByReference(query) {
-        const cleanQuery = query.trim().toUpperCase();
-
-        try {
-            // Step 1: Exact match by codigo (fastest)
-            const exact = await docClient.send(new GetCommand({
-                TableName: TABLE_NAME,
-                Key: { codigo: cleanQuery }
-            }));
-
-            if (exact.Item) {
-                return [this._addFinalPrice(exact.Item)];
-            }
-
-            // Step 2: Scan for partial matches on code fields
-            const items = await this._scanAll({
-                FilterExpression:
-                    'contains(codigo, :q) OR contains(ref_oem, :q) OR contains(ref_fabrica, :q)',
-                ExpressionAttributeValues: {
-                    ':q': cleanQuery
-                }
-            });
-
-            // Sort: exact matches first, then partial
-            items.sort((a, b) => {
-                const aExact = (a.codigo === cleanQuery || a.ref_oem === cleanQuery || a.ref_fabrica === cleanQuery) ? 0 : 1;
-                const bExact = (b.codigo === cleanQuery || b.ref_oem === cleanQuery || b.ref_fabrica === cleanQuery) ? 0 : 1;
-                return aExact - bExact;
-            });
-
-            return items.slice(0, 10).map(row => this._addFinalPrice(row));
-        } catch (err) {
-            console.error(`❌ searchByReference error: ${err.message}`);
-            return [];
-        }
-    }
-
-    /**
-     * Search products by description text (fuzzy keyword matching).
-     * Since DynamoDB doesn't support FULLTEXT, we use the pre-computed
-     * searchText field and rank results by keyword overlap score.
+     * Search products by description text.
      * @param {string} query - Search text
-     * @returns {Array} - Matching products sorted by relevance
+     * @returns {Array} - Matching products
      */
-    async searchByDescription(query) {
-        const cleanQuery = query.trim().toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-        // Split into meaningful keywords (>= 3 chars)
-        const keywords = cleanQuery
-            .replace(/[¿?.,!¡]/g, ' ')
-            .split(/\s+/)
-            .filter(w => w.length >= 3);
-
-        if (keywords.length === 0) return [];
+    async searchByDescription(query, stageId = null) {
+        const cleanQuery = query.trim().toLowerCase();
+        const searchWords = cleanQuery.split(/\s+/).filter(w => w.length >= 3);
 
         try {
-            // Build filter: at least the first keyword must appear in searchText
-            // This reduces the scan size significantly
-            const primaryKeyword = keywords[0];
+            // Use cache to avoid repeated full DynamoDB scans
+            let allItems = await cachedScan();
+            // Filter by allowed stages
+            const allowedStages = await this._getAllowedStages(stageId);
+            allItems = allItems.filter(i => allowedStages.includes(i.stage_id || 'stage_general'));
+            
+            // Score each item by how many search words match its description
+            const scored = allItems.map(item => {
+                const desc = (item._descripcion_lower || item.descripcion || '').toLowerCase();
+                const matchCount = searchWords.filter(w => desc.includes(w)).length;
+                return { item, matchCount };
+            }).filter(s => s.matchCount > 0);
 
-            const items = await this._scanAll({
-                FilterExpression: 'contains(searchText, :kw)',
-                ExpressionAttributeValues: {
-                    ':kw': primaryKeyword
-                }
-            });
+            // Sort by relevance (most matches first)
+            scored.sort((a, b) => b.matchCount - a.matchCount);
 
-            if (items.length === 0) {
-                // Fallback: try with shorter prefix of primary keyword
-                if (primaryKeyword.length >= 4) {
-                    const prefix = primaryKeyword.substring(0, 4);
-                    const fallbackItems = await this._scanAll({
-                        FilterExpression: 'contains(searchText, :kw)',
-                        ExpressionAttributeValues: {
-                            ':kw': prefix
-                        }
-                    });
-                    return this._rankByRelevance(fallbackItems, keywords).slice(0, 10);
-                }
-                return [];
-            }
-
-            return this._rankByRelevance(items, keywords).slice(0, 10);
+            return scored.slice(0, 10).map(s => this._addFinalPrice(s.item));
         } catch (err) {
-            console.error(`❌ searchByDescription error: ${err.message}`);
+            console.error(`❌ Description search error: ${err.message}`);
             return [];
         }
     }
 
     /**
-     * Universal search: tries reference first, then description.
+     * Universal search with 5-level hierarchy:
+     *   Level 1: Exact code match (via getByCode)
+     *   Level 2: Code variant match (via _code_variants)
+     *   Level 3: Partial code match (via includes)
+     *   Level 4: Description word match
+     *   Level 5: Fallback to RAG semantic (handled by caller)
      * @param {string} query - Search query
      * @returns {Array} - Matching products
      */
-    async search(query) {
-        // First try reference search (exact/partial match on codes)
-        let results = await this.searchByReference(query);
+    async search(query, stageId = null) {
+        // Level 1: Try exact code lookup first (O(1) DynamoDB getItem)
+        const exactProduct = await this.getByCode(query, stageId);
+        if (exactProduct) return [exactProduct];
+
+        // Levels 2-3: Reference search (variants + partial) — scoped to stageId
+        let results = await this.searchByReference(query, stageId);
         if (results.length > 0) return results;
 
-        // Fallback to description search
-        return this.searchByDescription(query);
+        // Level 4: Description search — scoped to stageId
+        results = await this.searchByDescription(query, stageId);
+        if (results.length > 0) return results;
+
+        // Level 5: No results — caller should fallback to RAG/semantic
+        return [];
     }
 
-    // ================================================================
-    // PAGINATION & STATS
-    // ================================================================
+    /**
+     * Search with total match count — used for broad search detection.
+     * Returns both the top results AND the total number of matches
+     * so the caller can decide whether to ask clarifying questions.
+     * @param {string} query - Search query
+     * @param {string|null} stageId - Optional stage filter
+     * @returns {Promise<{results: Array, totalMatches: number}>}
+     */
+    async searchWithCount(query, stageId = null) {
+        // Level 1: Exact code match — always precise, no broad search possible
+        const exactProduct = await this.getByCode(query, stageId);
+        if (exactProduct) return { results: [exactProduct], totalMatches: 1 };
+
+        // Levels 2-3: Reference search (variants + partial)
+        let refResults = await this.searchByReference(query, stageId);
+        if (refResults.length > 0) return { results: refResults, totalMatches: refResults.length };
+
+        // Level 4: Description search — this is where broad searches happen
+        const cleanQuery = query.trim().toLowerCase();
+        const searchWords = cleanQuery.split(/\s+/).filter(w => w.length >= 3);
+
+        try {
+            let allItems = await cachedScan();
+            const allowedStages = await this._getAllowedStages(stageId);
+            allItems = allItems.filter(i => allowedStages.includes(i.stage_id || 'stage_general'));
+
+            // Score each item
+            const scored = allItems.map(item => {
+                const desc = (item._descripcion_lower || item.descripcion || '').toLowerCase();
+                const matchCount = searchWords.filter(w => desc.includes(w)).length;
+                return { item, matchCount };
+            }).filter(s => s.matchCount > 0);
+
+            scored.sort((a, b) => b.matchCount - a.matchCount);
+
+            const totalMatches = scored.length;
+            const results = scored.slice(0, 10).map(s => this._addFinalPrice(s.item));
+
+            return { results, totalMatches, allMatchedItems: scored.map(s => s.item) };
+        } catch (err) {
+            console.error(`❌ SearchWithCount error: ${err.message}`);
+            return { results: [], totalMatches: 0 };
+        }
+    }
+
+    /**
+     * Extract facets (brands, frequent keywords, measures) from a set of matched products.
+     * Used to generate intelligent clarifying questions for the customer.
+     * @param {Array} matchedItems - Raw product items (not price-enriched)
+     * @param {number} totalMatches - Total number of matches
+     * @returns {Object} - { brands: [{name, count}], keywords: [{word, count}], totalMatches }
+     */
+    extractFacets(matchedItems, totalMatches) {
+        const brandMap = {};
+        const keywordMap = {};
+
+        // Common stop words to exclude from keyword extraction
+        const stopWords = new Set([
+            'para', 'con', 'del', 'los', 'las', 'una', 'uno', 'por', 'sin',
+            'que', 'mas', 'the', 'and', 'n/a', 'set', 'kit', 'juego'
+        ]);
+
+        for (const item of matchedItems) {
+            // Count brands
+            const brand = (item.marca || '').trim().toUpperCase();
+            if (brand && brand !== 'N/A') {
+                brandMap[brand] = (brandMap[brand] || 0) + 1;
+            }
+
+            // Extract meaningful keywords from description
+            const desc = (item.descripcion || '').toUpperCase();
+            const words = desc.split(/[\s,\-\/()]+/).filter(w =>
+                w.length >= 3 && !stopWords.has(w.toLowerCase()) && !/^\d+$/.test(w)
+            );
+            for (const word of words) {
+                keywordMap[word] = (keywordMap[word] || 0) + 1;
+            }
+        }
+
+        // Sort brands by count (most common first)
+        const brands = Object.entries(brandMap)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
+
+        // Extract keywords that appear in multiple products (potential differentiators)
+        // but NOT in all products (those are the search terms themselves, not differentiators)
+        const threshold = Math.max(2, Math.floor(totalMatches * 0.05)); // at least 5% of products
+        const ceiling = Math.floor(totalMatches * 0.9); // skip if in 90%+ of products
+        const keywords = Object.entries(keywordMap)
+            .filter(([, count]) => count >= threshold && count <= ceiling)
+            .map(([word, count]) => ({ word, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 15);
+
+        return { brands, keywords, totalMatches };
+    }
+
+    /**
+     * Search with accumulated filters from the conversation.
+     * Applies brand/keyword/measure filters on top of the base description search.
+     * @param {string} query - Base search query (e.g., "anillos motor")
+     * @param {Object} filters - { brand, keywords[] } accumulated from conversation
+     * @param {string|null} stageId - Optional stage filter
+     * @returns {Promise<{results: Array, totalMatches: number}>}
+     */
+    async searchFiltered(query, filters = {}, stageId = null) {
+        const cleanQuery = query.trim().toLowerCase();
+        const searchWords = cleanQuery.split(/\s+/).filter(w => w.length >= 3);
+
+        // Merge filter keywords into search words for broader matching
+        if (filters.keywords && filters.keywords.length > 0) {
+            for (const kw of filters.keywords) {
+                const kwLower = kw.trim().toLowerCase();
+                if (kwLower.length >= 3 && !searchWords.includes(kwLower)) {
+                    searchWords.push(kwLower);
+                }
+            }
+        }
+
+        try {
+            let allItems = await cachedScan();
+            const allowedStages = await this._getAllowedStages(stageId);
+            allItems = allItems.filter(i => allowedStages.includes(i.stage_id || 'stage_general'));
+
+            // Apply brand filter if provided
+            if (filters.brand) {
+                const brandFilter = filters.brand.trim().toUpperCase();
+                allItems = allItems.filter(i => {
+                    const brand = (i.marca || '').trim().toUpperCase();
+                    return brand.includes(brandFilter) || brandFilter.includes(brand);
+                });
+            }
+
+            // Score by description match
+            const scored = allItems.map(item => {
+                const desc = (item._descripcion_lower || item.descripcion || '').toLowerCase();
+                const matchCount = searchWords.filter(w => desc.includes(w)).length;
+                return { item, matchCount };
+            }).filter(s => s.matchCount > 0);
+
+            scored.sort((a, b) => b.matchCount - a.matchCount);
+
+            const totalMatches = scored.length;
+            const results = scored.slice(0, 10).map(s => this._addFinalPrice(s.item));
+
+            return { results, totalMatches };
+        } catch (err) {
+            console.error(`❌ SearchFiltered error: ${err.message}`);
+            return { results: [], totalMatches: 0 };
+        }
+    }
 
     /**
      * Get all products with pagination.
@@ -296,22 +397,23 @@ class ProductCatalogService {
      * @param {string} [marca] - Optional brand filter
      * @returns {Object} - { products, total, page, totalPages }
      */
-    async getAll(page = 1, limit = 50, marca = null) {
+    async getAll(page = 1, limit = 50, marca = null, stageId = null) {
         try {
-            let items;
+            // Use cache to avoid repeated full DynamoDB scans
+            let items = await cachedScan();
 
+            // Filter by allowed stages
+            const allowedStages = await this._getAllowedStages(stageId);
+            items = items.filter(i => allowedStages.includes(i.stage_id || 'stage_general'));
+            
             if (marca) {
-                // Use GSI for brand filtering
-                items = await this._queryByMarca(marca);
-            } else {
-                items = await this._scanAll();
+                items = items.filter(i => (i.marca || '').toLowerCase() === marca.toLowerCase());
             }
 
             // Sort by codigo
             items.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
 
             const total = items.length;
-            const totalPages = Math.ceil(total / limit);
             const offset = (page - 1) * limit;
             const paged = items.slice(offset, offset + limit);
 
@@ -319,39 +421,47 @@ class ProductCatalogService {
                 products: paged.map(row => this._addFinalPrice(row)),
                 total,
                 page,
-                totalPages,
+                totalPages: Math.ceil(total / limit),
             };
         } catch (err) {
-            console.error(`❌ getAll error: ${err.message}`);
+            console.error(`❌ GetAll error: ${err.message}`);
             return { products: [], total: 0, page, totalPages: 0 };
         }
     }
 
     /**
-     * Get catalog statistics.
+     * Get catalog statistics, optionally scoped to a stage.
+     * @param {string|null} stageId - Optional stage filter
      * @returns {Object} - Stats object
      */
-    async getStats() {
+    async getStats(stageId = null) {
+        // Short-circuit: return cached stats if same stageId and still fresh
+        const now = Date.now();
+        if (_statsCache && _statsCache.stageId === (stageId || null) && _statsCache.expiresAt > now) {
+            return _statsCache.stats;
+        }
+
         try {
-            const items = await this._scanAll({
-                ProjectionExpression: 'codigo, marca, precio_base'
-            });
+            // Use cache to avoid repeated full DynamoDB scans
+            let items = await cachedScan();
 
-            if (items.length === 0) {
-                return { totalProducts: 0, brands: [], avgPrice: 0, avgPriceFinal: 0 };
-            }
+            // Filter by allowed stages
+            const allowedStages = await this._getAllowedStages(stageId);
+            items = items.filter(i => allowedStages.includes(i.stage_id || 'stage_general'));
 
-            // Count by brand
+            const totalProducts = items.length;
+
+            // Group by brand
             const brandMap = {};
-            let totalPrice = 0;
+            let priceSum = 0;
             let priceCount = 0;
 
             for (const item of items) {
-                const m = item.marca || 'SIN_MARCA';
-                brandMap[m] = (brandMap[m] || 0) + 1;
-
+                if (item.marca) {
+                    brandMap[item.marca] = (brandMap[item.marca] || 0) + 1;
+                }
                 if (item.precio_base > 0) {
-                    totalPrice += item.precio_base;
+                    priceSum += item.precio_base;
                     priceCount++;
                 }
             }
@@ -360,43 +470,109 @@ class ProductCatalogService {
                 .map(([name, count]) => ({ name, count }))
                 .sort((a, b) => b.count - a.count);
 
-            const avgPrice = priceCount > 0 ? Math.round(totalPrice / priceCount) : 0;
+            const avgPrice = priceCount > 0 ? Math.round(priceSum / priceCount) : 0;
 
-            return {
-                totalProducts: items.length,
+            // Calculate average final price using the centralized formula
+            const avgMargin = avgPrice * (MARGIN_PERCENT / 100);
+            const avgChatbot = avgPrice * (CHATBOT_PERCENT / 100);
+            const avgSubtotal = avgPrice + avgMargin + avgChatbot;
+            const avgIva = avgSubtotal * (IVA_PERCENT / 100);
+
+            const stats = {
+                totalProducts,
                 brands,
                 avgPrice,
-                avgPriceFinal: Math.round(avgPrice * PRICE_MARKUP),
+                avgPriceFinal: Math.round(avgSubtotal + avgIva),
             };
+
+            // Store in stats cache. Invalidated immediately on any write, so
+            // STATS_CACHE_TTL (5 min) is just a safety fallback.
+            _statsCache = { stats, stageId: stageId || null, expiresAt: now + STATS_CACHE_TTL };
+            return stats;
         } catch (err) {
-            console.error(`❌ getStats error: ${err.message}`);
-            return { totalProducts: 0, brands: [], avgPrice: 0, avgPriceFinal: 0 };
+            console.error(`❌ Stats error: ${err.message}`);
+            return { totalProducts: 0, brands: [], avgPrice: 0 };
         }
     }
 
-    // ================================================================
-    // CHATBOT INTEGRATION
-    // ================================================================
+    /**
+     * Delete all products from the catalog.
+     * @returns {number} - Number of deleted items
+     */
+    async clearAll(stageId = null) {
+        try {
+            let items = await cachedScan();
+
+            // If stageId is provided, only clear products for that stage
+            if (stageId) {
+                items = items.filter(i => (i.stage_id || 'stage_general') === stageId);
+            }
+
+            let deleted = 0;
+            for (const item of items) {
+                await deleteItem(TABLE, { codigo: item.codigo });
+                deleted++;
+            }
+
+            // Invalidate cache after bulk delete
+            invalidateCache();
+            console.log(`🗑️ Cleared ${deleted} products${stageId ? ` for stage ${stageId}` : ''} from catalog`);
+            return deleted;
+        } catch (err) {
+            console.error(`❌ ClearAll error: ${err.message}`);
+            return 0;
+        }
+    }
+
+    /**
+     * Delete all products that belong to a specific catalog source file within a stage.
+     * This is the cascade-delete called when a catalog job record is removed.
+     * @param {string} catalogSource - Original filename of the catalog (job.fileName)
+     * @param {string} [stageId] - Optional: restrict deletion to a specific stage
+     * @returns {number} - Number of deleted items
+     */
+    async deleteBySource(catalogSource, stageId = null) {
+        if (!catalogSource) return 0;
+        try {
+            // Use cache to get all items (avoids an extra scan)
+            let items = await cachedScan();
+
+            // Match by catalog_source (exact filename)
+            items = items.filter(i => i.catalog_source === catalogSource);
+
+            // Further restrict to a specific stage if provided
+            if (stageId) {
+                items = items.filter(i => (i.stage_id || 'stage_general') === stageId);
+            }
+
+            let deleted = 0;
+            for (const item of items) {
+                await deleteItem(TABLE, { codigo: item.codigo });
+                deleted++;
+            }
+
+            // Invalidate cache after bulk delete
+            invalidateCache();
+            console.log(`🗑️ Deleted ${deleted} products from source "${catalogSource}"${stageId ? ` (stage: ${stageId})` : ''}`);
+            return deleted;
+        } catch (err) {
+            console.error(`❌ DeleteBySource error: ${err.message}`);
+            return 0;
+        }
+    }
 
     /**
      * Search from a chatbot query — detects references in natural language.
      * Returns a formatted response string if a product is found, or null.
      * 
-     * This is the main integration point with the chatbot. It's called
-     * BEFORE the RAG search in aiResponse.service.js.
-     * 
      * @param {string} message - The raw user message
-     * @param {string} jid - WhatsApp JID for conversation context
      * @returns {string|null} - Formatted response or null if no product found
      */
-    async searchFromChatQuery(message, jid = null) {
-        // Quick check: does the table have data?
+    async searchFromChatQuery(message, jid = null, stageId = null) {
         try {
-            const sample = await this._scanAll({
-                Limit: 1,
-                ProjectionExpression: 'codigo'
-            });
-            if (sample.length === 0) return null;
+            // Quick cache-based check: if catalog is empty skip the rest
+            const items = await cachedScan();
+            if (items.length === 0) return null;
         } catch (_) {
             return null;
         }
@@ -404,9 +580,23 @@ class ProductCatalogService {
         const text = message.trim();
         const textLower = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+        // === REJECTION / DISCARD DETECTION ===
+        // If the customer is expressing that something doesn't fit or is rejecting options,
+        // skip catalog lookup entirely so the AI can ask clarifying questions.
+        const rejectionPhrases = [
+            'no me sirve', 'ninguna me sirve', 'ninguno me sirve', 'no sirve', 'no son', 'no es la',
+            'no me funciona', 'no encaja', 'no coincide', 'ninguna', 'ninguno',
+            'de esas ninguna', 'de esos ninguno', 'otra medida', 'otra referencia', 'diferente medida',
+            'no, de esas', 'no de esas', 'no me queda', 'no es lo que', 'no corresponde',
+            'busco otra', 'necesito otra', 'quiero otra', 'diferente', 'otro modelo', 'otra marca'
+        ];
+        const isRejection = rejectionPhrases.some(ph => textLower.includes(ph));
+        if (isRejection) {
+            console.log('🔄 [Catalog] Rejection/discard phrase detected — skipping catalog lookup, letting AI ask clarifying questions.');
+            return null;
+        }
+
         // === PRICE REQUEST DETECTION ===
-        // If user sends a short message asking for price ("si", "precio", "dale", "cuanto"),
-        // scan conversation history for the most recent product code and return real price.
         const priceRequestWords = ['si', 'precio', 'dale', 'cuanto', 'cuanto cuesta', 'cuanto vale', 'dime', 'dime el precio', 'ok', 'vale', 'claro', 'por favor', 'porfavor', 'porfa'];
         const isPriceRequest = textLower.length < 30 && priceRequestWords.some(w => textLower.includes(w));
 
@@ -415,7 +605,6 @@ class ProductCatalogService {
                 const chatHistoryService = require('./chatHistory.service');
                 const conversation = await chatHistoryService.getMessages(jid);
                 if (conversation.messages && conversation.messages.length > 0) {
-                    // Scan last 10 messages for product codes
                     const recent = conversation.messages.slice(-10);
                     const codeRegex = /\b([A-Z]{2,4}-\d{2}-\d{3,4})\b/g;
 
@@ -423,8 +612,7 @@ class ProductCatalogService {
                         const msgText = recent[i].text || '';
                         const codes = msgText.match(codeRegex);
                         if (codes && codes.length > 0) {
-                            // Found a product code! Look it up
-                            const product = await this.getByCode(codes[0]);
+                            const product = await this.getByCode(codes[0], stageId);
                             if (product) {
                                 console.log(`💰 Price request detected. Product: ${codes[0]}, Price: $${product.precio_final}`);
                                 return this._formatPriceResponse(product);
@@ -437,36 +625,33 @@ class ProductCatalogService {
             }
         }
 
-        // Pattern 1: OEM-style references (e.g., 48510-0K100, 48820-47010, 13011-30051)
-        const oemPattern = /\b(\d{4,5}[-]?\w{3,8})\b/gi;
+        // Pattern 1: OEM-style references
+        const oemPattern = /\b(\d{4,5}[-\s]?\w{3,8})\b/gi;
         const oemMatches = text.match(oemPattern);
 
-        // Pattern 2: Internal codes — all brand prefixes (TOI, ISI, HYI, DAI, etc.)
-        const codePattern = /\b([A-Z]{2,4}[-]?\d{2}[-]?\d{3,4})\b/gi;
+        // Pattern 2: Internal codes
+        const codePattern = /\b([A-Z]{2,4}[-\s]?\d{2}[-\s]?\d{3,4})\b/gi;
         const codeMatches = text.match(codePattern);
 
-        // Pattern 3: Manufacturer ref codes (e.g., M184A1-STD, U3768G, HSL-62044L)
-        const refFabPattern = /\b([A-Z]\w{2,10}[-](?:STD|\d{1,2}\.?\d{0,2}|\w{2,10}))\b/gi;
+        // Pattern 3: Manufacturer ref codes
+        const refFabPattern = /\b([A-Z]\w{2,10}[-\s](?:STD|\d{1,2}\.?\d{0,2}|\w{2,10}))\b/gi;
         const refFabMatches = text.match(refFabPattern);
 
-        // Try each matched reference
         const allRefs = [...(codeMatches || []), ...(oemMatches || []), ...(refFabMatches || [])];
 
         for (const ref of allRefs) {
-            const results = await this.searchByReference(ref);
+            const results = await this.searchByReference(ref, stageId);
             if (results.length > 0) {
                 return this._formatChatResponse(results.slice(0, 5));
             }
         }
 
-        // Pattern 4: If the message looks like a direct product question
-        // (e.g., "tienes amortiguadores para hilux", "precio de pastillas toyota")
+        // Pattern 4: Natural language product questions
         const productKeywords = ['tienes', 'tienen', 'precio', 'referencia', 'repuesto', 'cuanto', 'cuánto', 'cuesta', 'vale', 'busco', 'necesito', 'cotiza'];
         const msgLower = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const hasProductIntent = productKeywords.some(kw => msgLower.includes(kw));
 
         if (hasProductIntent && text.length > 10) {
-            // Extract meaningful search terms (remove common words)
             const stopWords = ['la', 'el', 'de', 'del', 'para', 'un', 'una', 'los', 'las', 'que', 'por', 'con', 'en', 'al', 'es', 'se', 'si', 'no', 'ya', 'me', 'le', 'te', 'su', 'mi', 'nos', 'tienes', 'tienen', 'tiene', 'precio', 'referencia', 'repuesto', 'cuanto', 'cuesta', 'vale', 'busco', 'necesito', 'cotiza', 'hola', 'buenos', 'dias', 'buenas', 'tardes', 'noches', 'tambien', 'preguntar', 'ese', 'eso', 'este', 'esta'];
             const searchWords = msgLower
                 .replace(/[¿?.,!¡]/g, ' ')
@@ -475,12 +660,11 @@ class ProductCatalogService {
             const searchTerms = searchWords.join(' ');
 
             if (searchTerms.length >= 3) {
-                let results = await this.searchByDescription(searchTerms);
-
-                // Quality filter: ensure the first keyword actually appears in the results
+                let results = await this.searchByDescription(searchTerms, stageId);
+                
                 if (results.length > 0 && searchWords.length > 0) {
                     const primaryKeyword = searchWords[0].toUpperCase();
-                    const filtered = results.filter(r =>
+                    const filtered = results.filter(r => 
                         (r.descripcion || '').toUpperCase().includes(primaryKeyword)
                     );
                     if (filtered.length > 0) {
@@ -494,52 +678,11 @@ class ProductCatalogService {
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // FINAL FALLBACK: Universal description search
-        // If nothing else matched, always try a description search
-        // for any query longer than 8 characters. This catches cases
-        // like "PUNTA EJE SUZ. ALTO/WAGON R L/RUEDA (23X18X49)" where
-        // the user types a product description directly.
-        // ═══════════════════════════════════════════════════════════
-        if (text.length > 8) {
-            const fallbackWords = msgLower
-                .replace(/[¿?.,!¡()\[\]]/g, ' ')
-                .split(/\s+/)
-                .filter(w => w.length >= 3);
-            const fallbackTerms = fallbackWords.join(' ');
-
-            if (fallbackTerms.length >= 3) {
-                console.log(`🔎 Fallback description search: "${fallbackTerms}"`);
-                let results = await this.searchByDescription(fallbackTerms);
-
-                if (results.length > 0) {
-                    return this._formatChatResponse(results.slice(0, 5));
-                }
-
-                // Last resort: try with just the first 2 meaningful words
-                if (fallbackWords.length >= 2) {
-                    const twoWordSearch = fallbackWords.slice(0, 2).join(' ');
-                    results = await this.searchByDescription(twoWordSearch);
-                    if (results.length > 0) {
-                        return this._formatChatResponse(results.slice(0, 5));
-                    }
-                }
-            }
-        }
-
         return null;
     }
 
-    // ================================================================
-    // FORMATTING HELPERS
-    // ================================================================
+    // ── Formatting helpers ──
 
-    /**
-     * Format product results for the chatbot response.
-     * Uses the ||| separator pattern used by the existing system prompt.
-     * @param {Array} products - Product results
-     * @returns {string} - Formatted response string
-     */
     _formatChatResponse(products) {
         if (products.length === 0) return null;
 
@@ -556,7 +699,6 @@ class ProductCatalogService {
             return parts.join(' ||| ');
         }
 
-        // Multiple results: list all options WITHOUT price so client can choose first
         const parts = [];
         parts.push(`sumercé tenemos ${products.length} referencias para ese repuesto me dice cuál le interesa`);
 
@@ -570,11 +712,6 @@ class ProductCatalogService {
         return parts.join(' ||| ');
     }
 
-    /**
-     * Format a price response for a specific product.
-     * @param {Object} product - Product with precio_final already calculated
-     * @returns {string} - Formatted price response
-     */
     _formatPriceResponse(product) {
         const desc = this._truncateDesc(product.descripcion);
         const parts = [];
@@ -588,66 +725,6 @@ class ProductCatalogService {
         return parts.join(' ||| ');
     }
 
-    // ================================================================
-    // INTERNAL HELPERS
-    // ================================================================
-
-    /**
-     * Build a normalized search text field for a product.
-     * This is stored in DynamoDB and used for contains() filters.
-     * @param {Object} product - Product object
-     * @returns {string} - Normalized lowercase concatenation of all searchable fields
-     */
-    _buildSearchText(product) {
-        const parts = [
-            product.codigo || '',
-            product.ref_oem || '',
-            product.ref_fabrica || '',
-            product.descripcion || '',
-            product.marca || ''
-        ];
-        return parts.join(' ').toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9\s-]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    /**
-     * Rank products by keyword relevance score.
-     * @param {Array} items - DynamoDB items
-     * @param {string[]} keywords - Search keywords (lowercase, no accents)
-     * @returns {Array} - Products sorted by score DESC with precio_final
-     */
-    _rankByRelevance(items, keywords) {
-        const scored = items.map(item => {
-            const searchText = (item.searchText || '').toLowerCase();
-            let score = 0;
-
-            for (const kw of keywords) {
-                // Exact word match
-                if (searchText.includes(kw)) {
-                    score += 3;
-                }
-                // Prefix match (for stems)
-                else if (kw.length >= 5 && searchText.includes(kw.substring(0, 4))) {
-                    score += 1;
-                }
-            }
-
-            return { ...this._addFinalPrice(item), _score: score };
-        });
-
-        return scored
-            .filter(s => s._score > 0)
-            .sort((a, b) => b._score - a._score);
-    }
-
-    /**
-     * Truncate a product description for chat readability.
-     * @param {string} desc - Raw description
-     * @returns {string} - Truncated description
-     */
     _truncateDesc(desc) {
         if (!desc) return 'N/A';
         if (desc.length <= 80) return desc;
@@ -655,83 +732,68 @@ class ProductCatalogService {
     }
 
     /**
-     * Add calculated final price to a product row.
-     * @param {Object} row - DynamoDB item
-     * @returns {Object} - Row with precio_final added
+     * Adds precio_final to a product row using centralized pricing config.
+     * Formula: Subtotal = Base + Margin + Chatbot, then IVA on Subtotal.
      */
     _addFinalPrice(row) {
+        const breakdown = this._getPriceBreakdown(row);
         return {
             ...row,
-            precio_final: Math.round((row.precio_base || 0) * PRICE_MARKUP),
+            precio_final: breakdown.precio_final,
         };
     }
 
     /**
-     * Format a number with Colombian-style thousand separators.
-     * 105950 → "105.950"
-     * @param {number} num
-     * @returns {string}
+     * Returns a full price breakdown object for a product.
+     * Used by the admin panel to display how the final price is constructed.
+     * @param {Object} row - Product row with precio_base
+     * @returns {Object} - { precio_base, margen, gastos_chatbot, subtotal, iva, precio_final, config }
      */
+    _getPriceBreakdown(row) {
+        const base = row.precio_base || 0;
+        const margen = base * (MARGIN_PERCENT / 100);
+        const gastos_chatbot = base * (CHATBOT_PERCENT / 100);
+        const subtotal = base + margen + gastos_chatbot;
+        const iva = subtotal * (IVA_PERCENT / 100);
+        const precio_final = Math.round(subtotal + iva);
+
+        return {
+            precio_base: base,
+            margen: Math.round(margen),
+            gastos_chatbot: Math.round(gastos_chatbot),
+            subtotal: Math.round(subtotal),
+            iva: Math.round(iva),
+            precio_final,
+            config: {
+                margin_percent: MARGIN_PERCENT,
+                chatbot_percent: CHATBOT_PERCENT,
+                iva_percent: IVA_PERCENT,
+            },
+        };
+    }
+
+    /**
+     * Public method to get price breakdown for a product.
+     * @param {Object} product - Product object with precio_base
+     * @returns {Object} - Full price breakdown
+     */
+    getPriceBreakdown(product) {
+        return this._getPriceBreakdown(product);
+    }
+
     _formatNumber(num) {
         return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
-    // ================================================================
-    // DYNAMODB SCAN/QUERY HELPERS
-    // ================================================================
-
-    /**
-     * Full scan with automatic pagination (handles LastEvaluatedKey).
-     * @param {Object} params - Optional FilterExpression, ExpressionAttributeValues, etc.
-     * @returns {Array} - All matching items
-     */
-    async _scanAll(params = {}) {
-        const items = [];
-        let lastKey = undefined;
-
-        // Extract Limit if it's meant to cap total results (not per-page)
-        const totalLimit = params.Limit;
-        const scanParams = { ...params };
-        delete scanParams.Limit;
-
-        do {
-            const result = await docClient.send(new ScanCommand({
-                TableName: TABLE_NAME,
-                ExclusiveStartKey: lastKey,
-                ...scanParams
-            }));
-
-            items.push(...(result.Items || []));
-            lastKey = result.LastEvaluatedKey;
-
-            // Respect total limit
-            if (totalLimit && items.length >= totalLimit) {
-                return items.slice(0, totalLimit);
-            }
-        } while (lastKey);
-
-        return items;
-    }
-
-    /**
-     * Query products by brand using the GSI.
-     * @param {string} marca - Brand name
-     * @returns {Array}
-     */
-    async _queryByMarca(marca) {
+    async _getAllowedStages(stageId = null) {
+        if (stageId) return [stageId];
         try {
-            const result = await docClient.send(new QueryCommand({
-                TableName: TABLE_NAME,
-                IndexName: 'marca-index',
-                KeyConditionExpression: 'marca = :m',
-                ExpressionAttributeValues: {
-                    ':m': marca
-                }
-            }));
-            return result.Items || [];
-        } catch (err) {
-            console.error(`❌ queryByMarca error: ${err.message}`);
-            return [];
+            const stagesService = require('./stages.service');
+            const stages = await stagesService.getAll();
+            const activeStages = stages.filter(s => s.active).map(s => s.stageId);
+            return activeStages.length > 0 ? activeStages : ['stage_general'];
+        } catch (_) {
+            return ['stage_general'];
         }
     }
 }

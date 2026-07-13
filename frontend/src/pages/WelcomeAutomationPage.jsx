@@ -28,6 +28,8 @@ const WelcomeAutomationPage = () => {
     const [audioFileName, setAudioFileName] = useState(null);
     const [videoFileName, setVideoFileName] = useState(null);
     const [videoEnabled, setVideoEnabled] = useState(false);
+    const [greetMode, setGreetMode] = useState('none');
+    const [campaignContextHours, setCampaignContextHours] = useState(24);
 
     const fileInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -60,6 +62,8 @@ const WelcomeAutomationPage = () => {
             setAudioFileName(cfg.audioFilePath ? 'welcome-audio.ogg' : null);
             setVideoFileName(cfg.videoFilePath ? 'welcome-video.mp4' : null);
             setVideoEnabled(cfg.videoEnabled || false);
+            setGreetMode(cfg.greetMode || 'none');
+            setCampaignContextHours(cfg.campaignContextHours || 24);
             setStats(statsRes.data.data);
         } catch (err) {
             showToast('error', 'Error cargando configuración');
@@ -85,7 +89,9 @@ const WelcomeAutomationPage = () => {
                 isEnabled,
                 messageText,
                 cooldownHours: Number(cooldownHours),
-                videoEnabled
+                videoEnabled,
+                greetMode,
+                campaignContextHours: Number(campaignContextHours)
             });
             setConfig(data.data);
             showToast('success', 'Configuración guardada correctamente');
@@ -111,6 +117,7 @@ const WelcomeAutomationPage = () => {
             setAudioFileName(null);
             setVideoFileName(null);
             setVideoEnabled(false);
+            setGreetMode('none');
             showToast('success', 'Configuración reseteada a valores por defecto');
         } catch {
             showToast('error', 'Error al resetear configuración');
@@ -378,6 +385,40 @@ const WelcomeAutomationPage = () => {
                             </div>
                         </div>
 
+                        {/* Greet Mode */}
+                        <div className="premium-card wa-card">
+                            <div className="wa-card-header">
+                                <UserCheck size={20} style={{ color: '#1a1a1a' }} />
+                                <span className="wa-card-title">Saludar con Nombre</span>
+                            </div>
+                            <p className="wa-card-desc" style={{ marginBottom: '1rem' }}>
+                                Selecciona si deseas incluir el nombre del cliente en el mensaje de bienvenida.
+                                Usa el marcador <code>{"{nombre}"}</code> en el texto de tu mensaje para indicar dónde aparecerá.
+                            </p>
+                            <div className="wa-select-row">
+                                <select
+                                    className="wa-select"
+                                    value={greetMode}
+                                    onChange={e => setGreetMode(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(26, 26, 26, 0.2)',
+                                        background: '#fff',
+                                        color: '#1a1a1a',
+                                        fontSize: '0.95rem',
+                                        outline: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="none">No saludar con nombre (reemplazar por vacío)</option>
+                                    <option value="whatsapp">Usar nombre de WhatsApp (enviado por la app)</option>
+                                    <option value="dashboard">Usar nombre guardado en Dashboard (modificable en el chat)</option>
+                                </select>
+                            </div>
+                        </div>
+
                         {/* Cooldown */}
                         <div className="premium-card wa-card">
                             <div className="wa-card-header">
@@ -604,6 +645,37 @@ const WelcomeAutomationPage = () => {
                                     <span>Si IA no sabe → "ok" + cooldown 24h</span>
                                 </div>
                             </div>
+
+                        {/* Campaign Context Expiration */}
+                        <div className="premium-card wa-card">
+                            <div className="wa-card-header">
+                                <Clock size={20} style={{ color: '#1a1a1a' }} />
+                                <span className="wa-card-title">Contexto de Campaña (horas)</span>
+                            </div>
+                            <p className="wa-card-desc">
+                                Si un cliente recibió una campaña masiva hace menos de este tiempo, NO se le enviará el saludo de bienvenida (se asume que está en flujo de campaña). Después de este tiempo, se trata como conversación nueva.
+                            </p>
+                            <div className="wa-cooldown-row">
+                                <input
+                                    type="number"
+                                    className="wa-number-input"
+                                    value={campaignContextHours}
+                                    onChange={e => setCampaignContextHours(Math.max(1, Number(e.target.value)))}
+                                    min={1}
+                                    max={720}
+                                />
+                                <span className="wa-cooldown-unit">horas</span>
+                                {[12, 24, 48, 72].map(h => (
+                                    <button
+                                        key={h}
+                                        className={`wa-preset-btn ${campaignContextHours === h ? 'active' : ''}`}
+                                        onClick={() => setCampaignContextHours(h)}
+                                    >
+                                        {h}h
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         </div>
                     </div>
                 </div>

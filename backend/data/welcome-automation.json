@@ -1,9 +1,10 @@
 {
+  "greetMode": "dashboard",
   "isEnabled": true,
-  "messageText": "Hola, como estas ?\n---MSG---\n\n¿En qué repuesto te podemos ayudar hoy? 🔧  \n---MSG---\nPuedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.\n\n\n\n",
+  "messageText": "¡Hola! ,{{nombre}} 👋¿Mucho voleo con tus repuestos? \n\nTe ayudamos a encontrar el repuesto correcto para tu vehículo de forma rápida y segura.\n\nEnvíanos esta información:\n\n✅ Marca\n✅ Modelo\n✅ Año\n✅ Motor (si lo sabes)\n✅ Foto del repuesto (gran detalle)\n\nSi tienes foto de la tarjeta de propiedad del vehículo eso nos facilita el voleo.\n\nTe ayudamos enseguida. Bienvenido a VOLEO.\n---MSG---\n\n¿En qué repuesto te podemos ayudar hoy? 🔧  \n---MSG---\nPuedes enviarnos la referencia, modelo del vehículo o lo que estés buscando.",
   "audioFilePath": "C:\\Users\\David\\Desktop\\TODOSEMESTRE5\\semestre7\\ALDEA-MEDIA-REPUESTOS\\CHAT-WIFI\\backend\\public\\uploads\\welcome-audio.ogg",
   "cooldownHours": 24,
-  "updatedAt": "2026-04-18T02:06:35.226Z",
+  "updatedAt": "2026-06-17T02:52:21.625Z",
   "videoFilePath": "C:\\Users\\David\\Desktop\\VENTAS-WIFI\\VENTAS-WIFI\\CHAT-WIFI\\backend\\public\\uploads\\welcome-video.mp4",
   "videoEnabled": false
 }

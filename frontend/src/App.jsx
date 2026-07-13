@@ -13,6 +13,11 @@ import WelcomeAutomationPage from './pages/WelcomeAutomationPage';
 import PendingChatsPage from './pages/PendingChatsPage';
 import AIAutomationsPage from './pages/AIAutomationsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import QuickRepliesPage from './pages/QuickRepliesPage';
+import GuideRulesPage from './pages/GuideRulesPage';
+import MassCampaignsPage from './pages/MassCampaignsPage';
+import LeadsPage from './pages/LeadsPage';
+import AlertConfigPage from './pages/AlertConfigPage';
 
 const App = () => {
     return (
@@ -34,7 +39,12 @@ const App = () => {
                             <Route path="/pending-chats" element={<PendingChatsPage />} />
                             <Route path="/ai-automations" element={<AIAutomationsPage />} />
                             <Route path="/analytics" element={<AnalyticsPage />} />
+                            <Route path="/quick-replies" element={<QuickRepliesPage />} />
+                            <Route path="/guide-rules" element={<GuideRulesPage />} />
                             <Route path="/chats" element={<div>Próximamente...</div>} />
+                            <Route path="/mass-campaigns" element={<MassCampaignsPage />} />
+                            <Route path="/leads" element={<LeadsPage />} />
+                            <Route path="/alert-config" element={<AlertConfigPage />} />
                         </Route>
                     </Route>
 

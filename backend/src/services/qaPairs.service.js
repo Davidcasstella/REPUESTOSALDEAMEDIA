@@ -49,10 +49,11 @@ class QAPairsService {
         const chunkId = `qa_${pairId}_chunk_1`;
         const documentId = `qa_${pairId}`;
         const text = this._formatChunkText(question, answer);
+        const s3 = require('../config/s3');
 
-        // Save chunk text file
-        const chunkPath = path.join(CHUNKS_DIR, `${chunkId}.txt`);
-        await fs.writeFile(chunkPath, text, 'utf8');
+        // Save chunk text file to S3
+        const chunkKey = `knowledge-base/chunks/${chunkId}.txt`;
+        await s3.uploadFile(chunkKey, text, 'text/plain');
 
         // Generate and save embedding
         const embedding = await embeddingService.generateEmbedding(text);
@@ -62,23 +63,14 @@ class QAPairsService {
     }
 
     /**
-     * Remove the chunk and embedding files for a Q&A pair.
+     * Remove the chunk and embedding files for a Q&A pair from S3.
      * @param {string} pairId 
      */
     async _removeChunkAndEmbedding(pairId) {
-        const chunkId = `qa_${pairId}_chunk_1`;
-
-        // Remove chunk file
-        const chunkPath = path.join(CHUNKS_DIR, `${chunkId}.txt`);
-        if (await fs.pathExists(chunkPath)) {
-            await fs.remove(chunkPath);
-        }
-
-        // Remove embedding file
-        const embPath = path.join(EMBEDDINGS_DIR, `${chunkId}.json`);
-        if (await fs.pathExists(embPath)) {
-            await fs.remove(embPath);
-        }
+        const s3 = require('../config/s3');
+        // Remove S3 chunk files and S3 embedding files for this Q&A pair
+        await s3.deletePrefix(`knowledge-base/chunks/qa_${pairId}`);
+        await s3.deletePrefix(`knowledge-base/embeddings/qa_${pairId}`);
     }
 
     /**

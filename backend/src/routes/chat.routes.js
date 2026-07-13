@@ -6,6 +6,9 @@ const whatsapp = require('../core/WhatsApp');
 const welcomeAutomationService = require('../services/welcomeAutomation.service');
 const sentTracker = require('../utils/sentTracker');
 
+// Memory cache for profile pictures to avoid WhatsApp server rate-limits
+const profilePicCache = {};
+
 // All routes require authentication
 router.use(verifyToken);
 
@@ -114,6 +117,69 @@ router.delete('/:jid', async (req, res) => {
             res.status(404).json({ success: false, message: 'Conversación no encontrada' });
         }
     } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * PUT /api/chat/conversations/:jid/name
+ * Updates the display name for a conversation.
+ */
+router.put('/conversations/:jid/name', async (req, res) => {
+    try {
+        const jid = decodeURIComponent(req.params.jid);
+        const { name } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ success: false, message: 'name is required' });
+        }
+        const updated = await chatHistoryService.updatePushName(jid, name.trim());
+        
+        // Emit socket event to notify other connected clients about name change
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('chat:name-update', { jid, pushName: updated.pushName });
+        }
+
+        res.json({ success: true, pushName: updated.pushName });
+    } catch (error) {
+        console.error('Error updating conversation name:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * GET /api/chat/conversations/:jid/profile-picture
+ * Fetches the profile picture URL for a specific JID.
+ */
+router.get('/conversations/:jid/profile-picture', async (req, res) => {
+    try {
+        const jid = decodeURIComponent(req.params.jid);
+        if (!whatsapp.sock) {
+            return res.status(503).json({ success: false, message: 'WhatsApp not connected' });
+        }
+        
+        let url = profilePicCache[jid];
+        if (url === undefined) {
+            try {
+                url = await whatsapp.sock.profilePictureUrl(jid, 'image');
+                profilePicCache[jid] = url || null;
+            } catch (err) {
+                // Only cache null if it's a permanent 404 / not found error (i.e. user has no profile picture)
+                const isNotFoundError = err.message?.includes('404') || 
+                                       err.message?.includes('not-found') || 
+                                       err.message?.includes('item-not-found') ||
+                                       err.status === 404 || 
+                                       err.statusCode === 404;
+                if (isNotFoundError) {
+                    profilePicCache[jid] = null;
+                }
+                url = null;
+            }
+        }
+        
+        res.json({ success: true, url });
+    } catch (error) {
+        console.error(`Error fetching profile picture for ${req.params.jid}:`, error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 });
